@@ -49,10 +49,14 @@ def test_camera():
                 # Tính góc xoay (radian -> degree)
                 angle = np.degrees(np.arctan2(dy, dx))
 
-                # Quy ước đáp án theo hướng cạnh trên
+                # Quy ước đáp án theo hướng cạnh trên (trục Y hướng xuống trong OpenCV)
+                # A: Cạnh trên A hướng lên       -> dx > 0, dy ~ 0  -> [-45°, 45°]
+                # B: Cạnh phải B hướng lên       -> dx ~ 0, dy < 0  -> [-135°, -45°]
+                # C: Cạnh dưới C hướng lên (lộn ngược) -> dx < 0, dy ~ 0 -> [>135° hoặc <= -135°]
+                # D: Cạnh trái D hướng lên       -> dx ~ 0, dy > 0  -> [45°, 135°]
                 if -45 <= angle <= 45:
                     answer = "A"
-                elif 45 < angle <= 135:
+                elif -135 < angle < -45:
                     answer = "B"
                 elif angle > 135 or angle <= -135:
                     answer = "C"
@@ -62,12 +66,12 @@ def test_camera():
                 center = np.mean(corner, axis=0).astype(int)
                 badge_color = color_map.get(answer, (0, 255, 0))
 
-                # Vẽ nhãn đáp án nổi bật
-                text = f"The #{card_id} -> {answer}"
-                cv2.rectangle(frame, (center[0] - 65, center[1] - 30), (center[0] + 65, center[1] + 10), (15, 23, 42), -1)
-                cv2.rectangle(frame, (center[0] - 65, center[1] - 30), (center[0] + 65, center[1] + 10), badge_color, 2)
-                cv2.putText(frame, text, (center[0] - 58, center[1] - 6),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                # Vẽ nhãn đáp án nổi bật kèm góc xoay độ
+                text = f"#{card_id} -> {answer} ({int(angle)}deg)"
+                cv2.rectangle(frame, (center[0] - 80, center[1] - 32), (center[0] + 80, center[1] + 12), (15, 23, 42), -1)
+                cv2.rectangle(frame, (center[0] - 80, center[1] - 32), (center[0] + 80, center[1] + 12), badge_color, 2)
+                cv2.putText(frame, text, (center[0] - 74, center[1] - 6),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
         # Header hướng dẫn trên camera
         h, w = frame.shape[:2]

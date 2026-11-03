@@ -5,7 +5,7 @@ import 'dart:math';
 String calculateAnswer(List<List<double>> corners) {
   if (corners.length < 2) return 'A';
 
-  // corners[0] = top-left, corners[1] = top-right (theo chiều kim đồng hồ)
+  // corners[0] = top-left, corners[1] = top-right (theo chiều kim đồng hồ của marker gốc)
   final p0 = corners[0];
   final p1 = corners[1];
 
@@ -15,13 +15,13 @@ String calculateAnswer(List<List<double>> corners) {
   // atan2 trả về radian, convert sang degree
   final angle = (dx == 0 && dy == 0) ? 0.0 : _radToDeg(atan2(dy, dx));
 
-  // Quy ước đáp án theo góc xoay:
-  // A: 0°   (cạnh trên hướng phải / ngang)  -> -45° đến 45°
-  // B: 90°  (cạnh trên hướng xuống)         -> 45° đến 135°
-  // C: 180° (cạnh trên hướng trái)          -> >135° hoặc <= -135°
-  // D: 270° (cạnh trên hướng lên)           -> -135° đến -45°
+  // Trong hệ tọa độ hình ảnh camera: trục X sang phải (+X), trục Y hướng xuống (+Y)
+  // • A (cạnh trên A hướng lên): Cạnh A nằm ngang -> angle ~ 0°     [-45°, 45°]
+  // • B (cạnh phải B hướng lên): Xoay ngược chiều kim đồng hồ -> dy < 0, angle ~ -90° [-135°, -45°]
+  // • C (cạnh dưới C hướng lên): Lộn ngược 180° -> angle ~ 180° / -180° [>135° hoặc <= -135°]
+  // • D (cạnh trái D hướng lên): Xoay theo chiều kim đồng hồ  -> dy > 0, angle ~ +90° [45°, 135°]
   if (angle >= -45 && angle <= 45) return 'A';
-  if (angle > 45 && angle <= 135) return 'B';
+  if (angle > -135 && angle < -45) return 'B';
   if (angle > 135 || angle <= -135) return 'C';
   return 'D';
 }
