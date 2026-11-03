@@ -1,0 +1,525 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
+import {
+  FiUsers,
+  FiPlus,
+  FiTrash2,
+  FiEdit,
+  FiDownload,
+  FiCheck,
+  FiX,
+  FiUserPlus,
+  FiFileText,
+  FiGrid,
+} from 'react-icons/fi';
+
+interface Student {
+  id: string;
+  classroom_id: string;
+  card_id: number;
+  full_name: string;
+}
+
+interface Classroom {
+  id: string;
+  name: string;
+  created_at: string;
+  students?: Student[];
+}
+
+export default function ClassroomsPage() {
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [selectedClass, setSelectedClass] = useState<Classroom | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Modals state
+  const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
+  const [newClassName, setNewClassName] = useState('');
+
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentCard, setNewStudentCard] = useState('');
+
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [bulkNamesText, setBulkNamesText] = useState('');
+
+  const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    loadClassrooms();
+  }, []);
+
+  async function loadClassrooms() {
+    try {
+      setLoading(true);
+      const res = await api.get('/classrooms');
+      setClassrooms(res.data);
+      if (res.data.length > 0 && !selectedClass) {
+        loadClassDetails(res.data[0].id);
+      }
+    } catch (err) {
+      console.error('Lỗi tải danh sách lớp:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadClassDetails(id: string) {
+    try {
+      const res = await api.get(`/classrooms/${id}`);
+      setSelectedClass(res.data);
+    } catch (err) {
+      console.error('Lỗi tải chi tiết lớp:', err);
+    }
+  }
+
+  async function handleCreateClass(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newClassName.trim()) return;
+
+    try {
+      setActionLoading(true);
+      const res = await api.post('/classrooms', { name: newClassName.trim() });
+      setClassrooms([res.data, ...classrooms]);
+      setSelectedClass(res.data);
+      setNewClassName('');
+      setIsCreateClassOpen(false);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Có lỗi xảy ra khi tạo lớp');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleDeleteClass(id: string) {
+    if (!confirm('Bạn có chắc chắn muốn xóa lớp này cùng toàn bộ học sinh?')) return;
+
+    try {
+      await api.delete(`/classrooms/${id}`);
+      const filtered = classrooms.filter((c) => c.id !== id);
+      setClassrooms(filtered);
+      if (selectedClass?.id === id) {
+        setSelectedClass(filtered.length > 0 ? filtered[0] : null);
+        if (filtered.length > 0) {
+          loadClassDetails(filtered[0].id);
+        }
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Lỗi khi xóa lớp');
+    }
+  }
+
+  async function handleAddSingleStudent(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedClass || !newStudentName.trim() || !newStudentCard) return;
+
+    try {
+      setActionLoading(true);
+      await api.post(`/classrooms/${selectedClass.id}/students`, {
+        full_name: newStudentName.trim(),
+        card_id: parseInt(newStudentCard, 10),
+      });
+      loadClassDetails(selectedClass.id);
+      setNewStudentName('');
+      setNewStudentCard('');
+      setIsAddStudentOpen(false);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Lỗi khi thêm học sinh');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleBulkImport(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedClass || !bulkNamesText.trim()) return;
+
+    const names = bulkNamesText
+      .split('\n')
+      .map((n) => n.trim())
+      .filter((n) => n.length > 0);
+
+    if (names.length === 0) return;
+
+    try {
+      setActionLoading(true);
+      await api.post(`/classrooms/${selectedClass.id}/students/bulk`, {
+        students: names.map((full_name) => ({ full_name })),
+      });
+      loadClassDetails(selectedClass.id);
+      setBulkNamesText('');
+      setIsBulkImportOpen(false);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Lỗi khi import học sinh');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleDeleteStudent(studentId: string) {
+    if (!confirm('Xóa học sinh này khỏi danh sách?')) return;
+    try {
+      await api.delete(`/students/${studentId}`);
+      if (selectedClass) {
+        loadClassDetails(selectedClass.id);
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Lỗi khi xóa học sinh');
+    }
+  }
+
+  return (
+    <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
+            <FiUsers className="text-blue-500" />
+            <span>Quản Lý Lớp Học & Thẻ Học Sinh</span>
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Gán số thẻ cố định (1-50) tương ứng với từng học sinh trong lớp
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <a
+            href="http://localhost:3001/api/cards/pdf"
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition shadow-sm"
+          >
+            <FiDownload className="text-blue-400" />
+            <span>Tải PDF Thẻ In</span>
+          </a>
+
+          <button
+            onClick={() => setIsCreateClassOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition active:scale-95"
+          >
+            <FiPlus />
+            <span>Thêm Lớp Mới</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Layout: Left = Class List, Right = Student Management */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Classes (4 cols) */}
+        <div className="lg:col-span-4 space-y-3">
+          <h3 className="text-xs uppercase font-bold text-slate-400 tracking-wider px-1">
+            Danh Sách Lớp ({classrooms.length})
+          </h3>
+
+          {loading ? (
+            <div className="p-8 text-center text-slate-400">Đang tải danh sách lớp...</div>
+          ) : classrooms.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center">
+              <p className="text-sm text-slate-400 mb-3">Chưa có lớp học nào.</p>
+              <button
+                onClick={() => setIsCreateClassOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-blue-600 text-xs font-bold text-white inline-flex items-center gap-1.5"
+              >
+                <FiPlus /> Tạo ngay
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+              {classrooms.map((c) => {
+                const isSelected = selectedClass?.id === c.id;
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => loadClassDetails(c.id)}
+                    className={`group p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                      isSelected
+                        ? 'bg-blue-600/15 border-blue-500/60 shadow-lg shadow-blue-500/10'
+                        : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div>
+                      <h4 className={`text-base font-bold ${isSelected ? 'text-blue-400' : 'text-slate-200'}`}>
+                        {c.name}
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Ngày tạo: {c.created_at ? new Date(c.created_at).toLocaleDateString('vi-VN') : '—'}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClass(c.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
+                      title="Xóa lớp"
+                    >
+                      <FiTrash2 />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Students in Selected Class (8 cols) */}
+        <div className="lg:col-span-8 bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between min-h-[500px]">
+          {selectedClass ? (
+            <div>
+              {/* Class Header Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <span>{selectedClass.name}</span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-bold">
+                      {selectedClass.students?.length || 0}/50 học sinh
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Mỗi học sinh được gán 1 mã thẻ ArUco tương ứng từ #01 đến #50
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsBulkImportOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition"
+                  >
+                    <FiFileText className="text-emerald-400" />
+                    <span>Dán từ Excel</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsAddStudentOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition"
+                  >
+                    <FiUserPlus />
+                    <span>Thêm 1 HS</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Students Grid / Table */}
+              {!selectedClass.students || selectedClass.students.length === 0 ? (
+                <div className="py-16 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-800/80 text-slate-400 flex items-center justify-center text-2xl mx-auto mb-3">
+                    <FiUsers />
+                  </div>
+                  <h4 className="text-base font-bold text-slate-200 mb-1">Chưa có học sinh trong lớp</h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
+                    Nhập nhanh danh sách từ Excel hoặc thêm từng học sinh để bắt đầu gán thẻ.
+                  </p>
+                  <button
+                    onClick={() => setIsBulkImportOpen(true)}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-2"
+                  >
+                    <FiFileText /> Dán danh sách học sinh
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto pr-1">
+                  {selectedClass.students.map((student) => (
+                    <div
+                      key={student.id}
+                      className="group flex items-center justify-between p-3 rounded-2xl bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-400 font-mono font-black text-sm flex items-center justify-center flex-shrink-0">
+                          #{student.card_id.toString().padStart(2, '0')}
+                        </span>
+                        <span className="text-sm font-semibold text-slate-200 truncate max-w-[140px]">
+                          {student.full_name}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteStudent(student.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
+                        title="Xóa học sinh"
+                      >
+                        <FiTrash2 className="text-xs" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="m-auto text-center py-20 text-slate-400">
+              Chọn hoặc tạo một lớp học ở cột bên trái để quản lý danh sách học sinh.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal: Create Class */}
+      {isCreateClassOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-white">Tạo Lớp Học Mới</h3>
+              <button
+                onClick={() => setIsCreateClassOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <FiX className="text-xl" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateClass} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Tên lớp học
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: 10A1, 11 Chuyên Lý..."
+                  value={newClassName}
+                  onChange={(e) => setNewClassName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateClassOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading || !newClassName.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold disabled:opacity-50"
+                >
+                  {actionLoading ? 'Đang tạo...' : 'Tạo Lớp'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Single Student */}
+      {isAddStudentOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-white">Thêm Học Sinh</h3>
+              <button
+                onClick={() => setIsAddStudentOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <FiX className="text-xl" />
+              </button>
+            </div>
+            <form onSubmit={handleAddSingleStudent} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Họ và tên học sinh
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Nguyễn Văn An"
+                  value={newStudentName}
+                  onChange={(e) => setNewStudentName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Mã số thẻ ArUco (1 - 50)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  placeholder="Nhập số từ 1 đến 50"
+                  value={newStudentCard}
+                  onChange={(e) => setNewStudentCard(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddStudentOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold disabled:opacity-50"
+                >
+                  {actionLoading ? 'Đang thêm...' : 'Lưu học sinh'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Bulk Import from Excel */}
+      {isBulkImportOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-white">Dán Danh Sách Học Sinh Từ Excel</h3>
+                <p className="text-xs text-slate-400">Mỗi học sinh trên 1 dòng. Hệ thống sẽ tự động gán mã thẻ #01..#50.</p>
+              </div>
+              <button
+                onClick={() => setIsBulkImportOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <FiX className="text-xl" />
+              </button>
+            </div>
+            <form onSubmit={handleBulkImport} className="space-y-4">
+              <div>
+                <textarea
+                  rows={8}
+                  placeholder={`Nguyễn Văn An\nTrần Thị Bình\nLê Hoàng Cường\nPhạm Minh Dũng...`}
+                  value={bulkNamesText}
+                  onChange={(e) => setBulkNamesText(e.target.value)}
+                  className="w-full p-4 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkImportOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading || !bulkNamesText.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <FiCheck />
+                  <span>{actionLoading ? 'Đang nhập...' : 'Nhập Danh Sách'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
