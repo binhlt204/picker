@@ -14,10 +14,17 @@ def test_camera():
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("❌ Không mở được camera!")
+        print("❌ Không mở được camera! Vui lòng kiểm tra webcam máy tính.")
         return
 
     print("📷 Camera đang hoạt động. Giơ thẻ ArUco lên để nhận diện. Nhấn 'q' để thoát.")
+
+    color_map = {
+        "A": (246, 130, 59),   # Blue (BGR)
+        "B": (11, 158, 245),   # Amber/Orange (BGR)
+        "C": (68, 68, 239),    # Red (BGR)
+        "D": (94, 197, 34),    # Emerald/Green (BGR)
+    }
 
     while True:
         ret, frame = cap.read()
@@ -27,20 +34,22 @@ def test_camera():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         corners, ids, rejected = detector.detectMarkers(gray)
 
-        if ids is not None:
+        if ids is not None and len(ids) > 0:
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
 
             for i in range(len(ids)):
-                card_id = int(ids[i][0])
-                corner = corners[i][0]
+                # Xử lý tương thích cho cả OpenCV 4.x (2D array) và OpenCV 5.x (1D scalar array)
+                card_id = int(np.ravel(ids[i])[0])
+                corner = corners[i].reshape(-1, 2)  # Luôn có kích thước (4, 2)
 
                 # Vector cạnh trên của thẻ (từ p0 đến p1)
                 p0, p1 = corner[0], corner[1]
                 dx, dy = p1[0] - p0[0], p1[1] - p0[1]
 
-                # Tính góc xoay
+                # Tính góc xoay (radian -> degree)
                 angle = np.degrees(np.arctan2(dy, dx))
 
+                # Quy ước đáp án theo hướng cạnh trên
                 if -45 <= angle <= 45:
                     answer = "A"
                 elif 45 < angle <= 135:
@@ -51,9 +60,21 @@ def test_camera():
                     answer = "D"
 
                 center = np.mean(corner, axis=0).astype(int)
-                text = f"#{card_id} -> {answer}"
-                cv2.putText(frame, text, (center[0] - 30, center[1] - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                badge_color = color_map.get(answer, (0, 255, 0))
+
+                # Vẽ nhãn đáp án nổi bật
+                text = f"The #{card_id} -> {answer}"
+                cv2.rectangle(frame, (center[0] - 65, center[1] - 30), (center[0] + 65, center[1] + 10), (15, 23, 42), -1)
+                cv2.rectangle(frame, (center[0] - 65, center[1] - 30), (center[0] + 65, center[1] + 10), badge_color, 2)
+                cv2.putText(frame, text, (center[0] - 58, center[1] - 6),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+        # Header hướng dẫn trên camera
+        h, w = frame.shape[:2]
+        cv2.rectangle(frame, (0, 0), (w, 36), (15, 23, 42), -1)
+        count_detected = len(ids) if ids is not None else 0
+        cv2.putText(frame, f"Pickball Scanner Test | Da phat hien: {count_detected} the | Nhan 'q' de thoat",
+                    (12, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1)
 
         cv2.imshow("Pickball ArUco Scanner Test", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
