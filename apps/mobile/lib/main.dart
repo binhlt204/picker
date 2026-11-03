@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
@@ -46,7 +48,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final TextEditingController _urlController = TextEditingController(text: 'http://10.0.2.2:3001');
+  late final TextEditingController _urlController;
   List<dynamic> _sessions = [];
   bool _loading = false;
   String? _error;
@@ -54,7 +56,21 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Trên máy thật iOS hoặc Android, dùng IP WiFi máy chủ.
+    // Trên simulator/web dùng localhost hoặc IP LAN.
+    String defaultUrl = 'http://192.168.1.11:3001';
+    if (!kIsWeb && Platform.isAndroid) {
+      // Mặc định LAN IP giúp chạy tốt cả máy thật lẫn giả lập
+      defaultUrl = 'http://192.168.1.11:3001';
+    }
+    _urlController = TextEditingController(text: defaultUrl);
     _fetchSessions();
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchSessions() async {
@@ -86,6 +102,37 @@ class _HomeScreenState extends State<HomeScreen> {
         _loading = false;
       });
     }
+  }
+
+  Widget _buildQuickChip(String label, String url) {
+    final isSelected = _urlController.text.trim() == url;
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () {
+        setState(() {
+          _urlController.text = url;
+        });
+        _fetchSessions();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? Colors.blueAccent : Colors.white12,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isSelected ? Colors.white : Colors.white70,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -161,9 +208,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      _buildQuickChip('WiFi PC (192.168.1.11)', 'http://192.168.1.11:3001'),
+                      _buildQuickChip('Simulator (localhost)', 'http://localhost:3001'),
+                      _buildQuickChip('Android Emu (10.0.2.2)', 'http://10.0.2.2:3001'),
+                    ],
+                  ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Dùng IP máy tính trong mạng WiFi (ví dụ: http://192.168.1.5:3001)',
+                    'Dùng IP máy tính trong mạng WiFi để iPhone/Android kết nối được máy chủ.',
                     style: TextStyle(color: Colors.white38, fontSize: 10),
                   ),
                 ],
@@ -190,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               const Icon(Icons.wifi_off, size: 48, color: Colors.redAccent),
                               const SizedBox(height: 8),
-                              Text(_error!, style: const TextStyle(color: Colors.white70)),
+                              Text(_error!, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
                               const SizedBox(height: 12),
                               ElevatedButton(
                                 onPressed: _fetchSessions,
@@ -214,7 +271,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                     side: BorderSide(
-                                      color: isCompleted ? Colors.white10 : Colors.blue.withOpacity(0.4),
+                                      color: isCompleted
+                                          ? Colors.white10
+                                          : Colors.blue.withValues(alpha: 0.4),
                                     ),
                                   ),
                                   margin: const EdgeInsets.only(bottom: 12),

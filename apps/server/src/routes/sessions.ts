@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
+import http from 'http';
+import { getOrCreateActiveSession, submitAnswers } from '../socket/sessionHandler';
 
 const router = Router();
 
@@ -44,7 +46,7 @@ router.get('/:id', (req: Request, res: Response) => {
       JOIN classrooms c ON s.classroom_id = c.id
       JOIN quizzes q ON s.quiz_id = q.id
       WHERE s.id = ?
-    `).get(req.params.id) as any;
+    `).get((req.params.id as string)) as any;
 
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
@@ -106,12 +108,12 @@ router.patch('/:id/status', (req: Request, res: Response) => {
     }
 
     const db = getDB();
-    const result = db.prepare('UPDATE exam_sessions SET status = ? WHERE id = ?').run(status, req.params.id);
+    const result = db.prepare('UPDATE exam_sessions SET status = ? WHERE id = ?').run(status, (req.params.id as string));
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    const updated = db.prepare('SELECT * FROM exam_sessions WHERE id = ?').get(req.params.id);
+    const updated = db.prepare('SELECT * FROM exam_sessions WHERE id = ?').get((req.params.id as string));
     res.json(updated);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -128,7 +130,7 @@ router.get('/:id/results', (req: Request, res: Response) => {
       JOIN classrooms c ON s.classroom_id = c.id
       JOIN quizzes q ON s.quiz_id = q.id
       WHERE s.id = ?
-    `).get(req.params.id) as any;
+    `).get((req.params.id as string)) as any;
 
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
@@ -144,7 +146,7 @@ router.get('/:id/results', (req: Request, res: Response) => {
 
     const answers = db.prepare(
       'SELECT * FROM session_answers WHERE session_id = ?'
-    ).all(req.params.id) as any[];
+    ).all((req.params.id as string)) as any[];
 
     // Map answers by student_id and question_id
     const answerMap: Record<string, Record<string, any>> = {};
@@ -215,6 +217,118 @@ router.get('/:id/results', (req: Request, res: Response) => {
         minScore,
       },
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/sessions/:id/current-question
+router.get('/:id/current-question', (req: Request, res: Response) => {
+  try {
+    const session = getOrCreateActiveSession((req.params.id as string));
+    if (!session || !session.currentQuestionId) {
+      return res.status(404).json({ error: 'No active question found' });
+    }
+    const db = getDB();
+    const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(session.currentQuestionId) as any;
+    if (!question) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+    const totalQ = db.prepare('SELECT COUNT(*) as count FROM questions WHERE quiz_id = ?').get(question.quiz_id) as any;
+    const examSession = db.prepare('SELECT classroom_id FROM exam_sessions WHERE id = ?').get((req.params.id as string)) as any;
+    const totalStudents = examSession
+      ? (db.prepare('SELECT COUNT(*) as count FROM students WHERE classroom_id = ?').get(examSession.classroom_id) as any)?.count || 0
+      : 0;
+
+    res.json({
+      questionId: question.id,
+      questionOrder: question.question_order,
+      content: question.content,
+      optionA: question.option_a,
+      optionB: question.option_b,
+      optionC: question.option_c,
+      optionD: question.option_d,
+      timeLimit: session.timeLimit,
+      totalQuestions: totalQ?.count || 0,
+      isLocked: session.isLocked,
+      submittedCardIds: Object.keys(session.answers).map(Number),
+      totalStudents,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/sessions/:id/submit-card
+router.post('/:id/submit-card', (req: Request, res: Response) => {
+  try {
+    const { cardId, answer } = req.body;
+    if (typeof cardId !== 'number' || !answer) {
+      return res.status(400).json({ error: 'cardId (number) and answer (string) required' });
+    }
+    const result = submitAnswers((req.params.id as string), [{ cardId, answer }]);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/sessions/:id/scan-frame
+router.post('/:id/scan-frame', async (req: Request, res: Response) => {
+  try {
+    let imageBuffer: Buffer | null = null;
+    if (Buffer.isBuffer(req.body)) {
+      imageBuffer = req.body;
+    } else if (req.body && req.body.image) {
+      imageBuffer = Buffer.from(req.body.image, 'base64');
+    }
+
+    if (!imageBuffer || imageBuffer.length === 0) {
+      return res.status(400).json({ error: 'Image data missing (send raw image bytes or base64 JSON)' });
+    }
+
+    const detectorReq = http.request(
+      'http://127.0.0.1:5001/detect',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Content-Length': imageBuffer.length,
+        },
+      },
+      (detectorRes) => {
+        let data = '';
+        detectorRes.on('data', (chunk) => (data += chunk));
+        detectorRes.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            const markers = parsed.results || [];
+            if (markers.length > 0) {
+              const submission = submitAnswers(
+                (req.params.id as string),
+                markers.map((m: any) => ({ cardId: m.cardId, answer: m.answer }))
+              );
+              return res.json({
+                success: true,
+                detectedCount: markers.length,
+                markers,
+                accepted: submission.accepted,
+              });
+            }
+            res.json({ success: true, detectedCount: 0, markers: [], accepted: [] });
+          } catch (e: any) {
+            res.status(500).json({ error: 'Failed to parse detector response', detail: e.message });
+          }
+        });
+      }
+    );
+
+    detectorReq.on('error', (err) => {
+      res.status(502).json({ error: 'Detector service unavailable on 5001', detail: err.message });
+    });
+
+    detectorReq.write(imageBuffer);
+    detectorReq.end();
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

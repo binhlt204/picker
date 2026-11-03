@@ -1,11 +1,41 @@
-"""
-Kiểm tra khả năng nhận diện thẻ ArUco qua Webcam máy tính.
+﻿"""
+Kiểm tra và quét thẻ ArUco qua Webcam máy tính, đồng bộ trực tiếp với Server Pickball.
 Chạy: python scripts/test-camera.py
-Ấn phím 'q' để thoát.
+Nhấn 'q' để thoát.
 """
 
 import cv2
 import numpy as np
+import urllib.request
+import json
+import time
+
+SERVER_URL = "http://localhost:3001"
+
+def get_active_session():
+    try:
+        req = urllib.request.Request(f"{SERVER_URL}/api/sessions")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            sessions = json.loads(resp.read().decode('utf-8'))
+            for s in sessions:
+                if s.get("status") == "ACTIVE":
+                    return s
+    except Exception as e:
+        pass
+    return None
+
+def submit_answer(session_id, card_id, answer):
+    try:
+        data = json.dumps({"cardId": card_id, "answer": answer}).encode('utf-8')
+        req = urllib.request.Request(
+            f"{SERVER_URL}/api/sessions/{session_id}/submit-card",
+            data=data,
+            headers={"Content-Type": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=1) as resp:
+            return json.loads(resp.read().decode('utf-8'))
+    except Exception:
+        return None
 
 def test_camera():
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
@@ -26,10 +56,20 @@ def test_camera():
         "D": (94, 197, 34),    # Emerald/Green (BGR)
     }
 
+    active_session = get_active_session()
+    last_session_check = time.time()
+    submitted_history = {} # card_id -> (answer, timestamp)
+
     while True:
         ret, frame = cap.read()
         if not ret:
             break
+
+        # Kiem tra phien thi dinh ky moi 5 giay
+        now = time.time()
+        if now - last_session_check > 5:
+            active_session = get_active_session()
+            last_session_check = now
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         corners, ids, rejected = detector.detectMarkers(gray)
@@ -38,22 +78,18 @@ def test_camera():
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
 
             for i in range(len(ids)):
-                # Xử lý tương thích cho cả OpenCV 4.x (2D array) và OpenCV 5.x (1D scalar array)
                 card_id = int(np.ravel(ids[i])[0])
-                corner = corners[i].reshape(-1, 2)  # Luôn có kích thước (4, 2)
+                corner = corners[i].reshape(-1, 2)
 
-                # Vector cạnh trên của thẻ (từ p0 đến p1)
                 p0, p1 = corner[0], corner[1]
                 dx, dy = p1[0] - p0[0], p1[1] - p0[1]
-
-                # Tính góc xoay (radian -> degree)
                 angle = np.degrees(np.arctan2(dy, dx))
 
-                # Quy ước đáp án theo hướng cạnh trên (trục Y hướng xuống trong OpenCV)
-                # A: Cạnh trên A hướng lên       -> dx > 0, dy ~ 0  -> [-45°, 45°]
-                # B: Cạnh phải B hướng lên       -> dx ~ 0, dy < 0  -> [-135°, -45°]
-                # C: Cạnh dưới C hướng lên (lộn ngược) -> dx < 0, dy ~ 0 -> [>135° hoặc <= -135°]
-                # D: Cạnh trái D hướng lên       -> dx ~ 0, dy > 0  -> [45°, 135°]
+                # Quy ước góc xoay đồng bộ:
+                # A: [-45°, 45°]
+                # B: [-135°, -45°]
+                # C: [>135° hoặc <= -135°]
+                # D: [45°, 135°]
                 if -45 <= angle <= 45:
                     answer = "A"
                 elif -135 < angle < -45:
@@ -66,21 +102,32 @@ def test_camera():
                 center = np.mean(corner, axis=0).astype(int)
                 badge_color = color_map.get(answer, (0, 255, 0))
 
-                # Vẽ nhãn đáp án nổi bật kèm góc xoay độ
-                text = f"#{card_id} -> {answer} ({int(angle)}deg)"
-                cv2.rectangle(frame, (center[0] - 80, center[1] - 32), (center[0] + 80, center[1] + 12), (15, 23, 42), -1)
-                cv2.rectangle(frame, (center[0] - 80, center[1] - 32), (center[0] + 80, center[1] + 12), badge_color, 2)
-                cv2.putText(frame, text, (center[0] - 74, center[1] - 6),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+                # Tu dong nop bai ve Server neu co phien thi dang chay
+                if active_session:
+                    last_sub = submitted_history.get(card_id)
+                    if not last_sub or last_sub[0] != answer or (now - last_sub[1] > 3):
+                        res = submit_answer(active_session["id"], card_id, answer)
+                        if res and res.get("success"):
+                            submitted_history[card_id] = (answer, now)
 
-        # Header hướng dẫn trên camera
+                # Ve nhan len video
+                is_sent = card_id in submitted_history and (now - submitted_history[card_id][1] < 3)
+                status_icon = "[V]" if is_sent else ""
+                text = f"#{card_id} -> {answer} {status_icon} ({int(angle)}deg)"
+                cv2.rectangle(frame, (center[0] - 90, center[1] - 32), (center[0] + 90, center[1] + 12), (15, 23, 42), -1)
+                cv2.rectangle(frame, (center[0] - 90, center[1] - 32), (center[0] + 90, center[1] + 12), badge_color, 2)
+                cv2.putText(frame, text, (center[0] - 84, center[1] - 6),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 255, 255), 2)
+
+        # Thanh thong tin tren cung
         h, w = frame.shape[:2]
-        cv2.rectangle(frame, (0, 0), (w, 36), (15, 23, 42), -1)
+        cv2.rectangle(frame, (0, 0), (w, 38), (15, 23, 42), -1)
         count_detected = len(ids) if ids is not None else 0
-        cv2.putText(frame, f"Pickball Scanner Test | Da phat hien: {count_detected} the | Nhan 'q' de thoat",
-                    (12, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1)
+        session_text = f"Phien: {active_session['classroom_name']}" if active_session else "Chua co phien ACTIVE"
+        cv2.putText(frame, f"Pickball Live Sync | {session_text} | Da quet: {count_detected} | Nhan 'q' thoat",
+                    (12, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 255, 255), 1)
 
-        cv2.imshow("Pickball ArUco Scanner Test", frame)
+        cv2.imshow("Pickball ArUco Live Sync", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 

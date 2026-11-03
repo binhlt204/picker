@@ -1,19 +1,121 @@
-import { Server, Socket } from 'socket.io';
+﻿import { Server, Socket } from 'socket.io';
 import { getDB } from '../database';
 import { v4 as uuidv4 } from 'uuid';
 import { SOCKET_EVENTS } from '@pickball/shared';
 
-interface ActiveSession {
+export interface ActiveSession {
   sessionId: string;
   currentQuestionId: string | null;
   isLocked: boolean;
-  answers: Record<number, string>;  // cardId → answer ('A' | 'B' | 'C' | 'D')
+  answers: Record<number, string>; // cardId -> answer ('A' | 'B' | 'C' | 'D')
   timeLimit: number;
 }
 
 const activeSessions: Map<string, ActiveSession> = new Map();
+let ioInstance: Server | null = null;
+
+export function getOrCreateActiveSession(sessionId: string): ActiveSession | null {
+  let session = activeSessions.get(sessionId);
+  if (session) return session;
+
+  const db = getDB();
+  const examSession = db.prepare('SELECT * FROM exam_sessions WHERE id = ?').get(sessionId) as any;
+  if (!examSession) return null;
+
+  // Tim cau hoi hien tai
+  const order = examSession.current_question_order || 1;
+  const question = db.prepare(
+    'SELECT * FROM questions WHERE quiz_id = ? ORDER BY question_order ASC LIMIT 1 OFFSET ?'
+  ).get(examSession.quiz_id, Math.max(0, order - 1)) as any;
+
+  if (!question) return null;
+
+  // Load existing answers
+  const existingAnswers = db.prepare(`
+    SELECT st.card_id, a.selected_option
+    FROM session_answers a
+    JOIN students st ON a.student_id = st.id
+    WHERE a.session_id = ? AND a.question_id = ?
+  `).all(sessionId, question.id) as any[];
+
+  const answersMap: Record<number, string> = {};
+  existingAnswers.forEach((r) => {
+    answersMap[r.card_id] = r.selected_option;
+  });
+
+  session = {
+    sessionId,
+    currentQuestionId: question.id,
+    isLocked: examSession.status === 'COMPLETED',
+    answers: answersMap,
+    timeLimit: question.time_limit || 30,
+  };
+
+  activeSessions.set(sessionId, session);
+  return session;
+}
+
+export function submitAnswers(sessionId: string, records: Array<{ cardId: number; answer: string }>) {
+  const session = getOrCreateActiveSession(sessionId);
+  if (!session || session.isLocked || !session.currentQuestionId) {
+    return { success: false, reason: 'Session not active or locked', accepted: [] };
+  }
+
+  const db = getDB();
+  const examSession = db.prepare('SELECT classroom_id FROM exam_sessions WHERE id = ?').get(sessionId) as any;
+  if (!examSession) return { success: false, reason: 'Exam session not found', accepted: [] };
+
+  const students = db.prepare('SELECT id, card_id, full_name FROM students WHERE classroom_id = ?').all(examSession.classroom_id) as any[];
+  const studentMap = new Map<number, { id: string; name: string }>();
+  students.forEach(s => studentMap.set(s.card_id, { id: s.id, name: s.full_name }));
+
+  const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(session.currentQuestionId) as any;
+
+  let hasNew = false;
+  const accepted: Array<{ cardId: number; studentName: string; answer: string }> = [];
+
+  records.forEach(({ cardId, answer }) => {
+    const validAnswer = ['A', 'B', 'C', 'D'].includes(answer);
+    const student = studentMap.get(cardId);
+    if (validAnswer && student) {
+      if (session.answers[cardId] !== answer) {
+        session.answers[cardId] = answer;
+        hasNew = true;
+      }
+      accepted.push({ cardId, studentName: student.name, answer });
+
+      // Lưu/cập nhật vào database
+      if (question) {
+        db.prepare(`
+          INSERT INTO session_answers (id, session_id, question_id, student_id, selected_option, is_correct, submitted_at)
+          VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+          ON CONFLICT(session_id, question_id, student_id)
+          DO UPDATE SET selected_option = excluded.selected_option, is_correct = excluded.is_correct, submitted_at = excluded.submitted_at
+        `).run(
+          uuidv4(),
+          sessionId,
+          session.currentQuestionId,
+          student.id,
+          answer,
+          answer === question.correct_option ? 1 : 0
+        );
+      }
+    }
+  });
+
+  if (hasNew && ioInstance) {
+    ioInstance.to(`session:${sessionId}`).emit(SOCKET_EVENTS.UPDATE_SUBMITTED_STUDENTS, {
+      submittedCardIds: Object.keys(session.answers).map(Number),
+      totalStudents: students.length,
+    });
+  }
+
+  return { success: true, accepted };
+}
 
 export function setupSocketHandlers(io: Server) {
+  ioInstance = io;
+
   io.on('connection', (socket: Socket) => {
     console.log(`📱 Client connected: ${socket.id}`);
 
@@ -22,8 +124,7 @@ export function setupSocketHandlers(io: Server) {
       socket.join(`session:${sessionId}`);
       console.log(`🖥️  Projector joined session: ${sessionId}`);
 
-      // Nếu session đang có câu hỏi đang chạy, gửi ngay trạng thái cho máy chiếu
-      const session = activeSessions.get(sessionId);
+      const session = getOrCreateActiveSession(sessionId);
       if (session && session.currentQuestionId) {
         const db = getDB();
         const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(session.currentQuestionId) as any;
@@ -68,7 +169,7 @@ export function setupSocketHandlers(io: Server) {
       socket.join(`session:${sessionId}`);
       console.log(`📷 Scanner joined session: ${sessionId}`);
 
-      const session = activeSessions.get(sessionId);
+      const session = getOrCreateActiveSession(sessionId);
       if (session && session.currentQuestionId) {
         const db = getDB();
         const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(session.currentQuestionId) as any;
@@ -85,6 +186,16 @@ export function setupSocketHandlers(io: Server) {
           timeLimit: session.timeLimit,
           totalQuestions: totalQ?.count || 0,
         });
+
+        const examSession = db.prepare('SELECT classroom_id FROM exam_sessions WHERE id = ?').get(sessionId) as any;
+        const totalStudents = examSession
+          ? (db.prepare('SELECT COUNT(*) as count FROM students WHERE classroom_id = ?').get(examSession.classroom_id) as any)?.count || 0
+          : 0;
+
+        socket.emit(SOCKET_EVENTS.UPDATE_SUBMITTED_STUDENTS, {
+          submittedCardIds: Object.keys(session.answers).map(Number),
+          totalStudents,
+        });
       }
     });
 
@@ -92,21 +203,18 @@ export function setupSocketHandlers(io: Server) {
     socket.on(SOCKET_EVENTS.NEXT_QUESTION, ({ sessionId, questionId, timeLimit }) => {
       const db = getDB();
 
-      // Lấy thông tin câu hỏi từ DB
       const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(questionId) as any;
       if (!question) {
         socket.emit(SOCKET_EVENTS.ERROR, { message: 'Question not found' });
         return;
       }
 
-      // Cập nhật trạng thái phiên trong DB
       db.prepare(`
         UPDATE exam_sessions
         SET status = 'ACTIVE', current_question_order = ?
         WHERE id = ?
       `).run(question.question_order, sessionId);
 
-      // Cập nhật session in-memory state
       const session: ActiveSession = {
         sessionId,
         currentQuestionId: questionId,
@@ -116,12 +224,10 @@ export function setupSocketHandlers(io: Server) {
       };
       activeSessions.set(sessionId, session);
 
-      // Lấy tổng số câu hỏi
       const totalQ = db.prepare(
         'SELECT COUNT(*) as count FROM questions WHERE quiz_id = ?'
       ).get(question.quiz_id) as any;
 
-      // Broadcast đến tất cả trong room
       io.to(`session:${sessionId}`).emit(SOCKET_EVENTS.QUESTION_STARTED, {
         questionId: question.id,
         questionOrder: question.question_order,
@@ -134,95 +240,29 @@ export function setupSocketHandlers(io: Server) {
         totalQuestions: totalQ?.count || 0,
       });
 
-      console.log(`▶️ Question started: Order ${question.question_order} (ID: ${question.id}) in session ${sessionId}`);
+      console.log(`▶️ Question started: Order ${question.question_order} in session ${sessionId}`);
     });
 
-    // === Nhận kết quả quét (từ mobile camera) ===
+    // === Nhận kết quả quét (từ mobile camera hoặc web scanner) ===
     socket.on(SOCKET_EVENTS.SUBMIT_SCANNED_BATCH, ({ sessionId, questionId, records }) => {
-      const session = activeSessions.get(sessionId);
-      if (!session || session.isLocked || session.currentQuestionId !== questionId) {
-        return; // Bỏ qua nếu session không hợp lệ hoặc đã bị khóa
-      }
-
-      let hasNewAnswers = false;
-      records.forEach(({ cardId, answer }: { cardId: number; answer: string }) => {
-        if (!session.answers[cardId] && ['A', 'B', 'C', 'D'].includes(answer)) {
-          session.answers[cardId] = answer;
-          hasNewAnswers = true;
-        }
-      });
-
-      if (hasNewAnswers) {
-        const db = getDB();
-        const examSession = db.prepare(
-          'SELECT classroom_id FROM exam_sessions WHERE id = ?'
-        ).get(sessionId) as any;
-        const totalStudents = examSession
-          ? (db.prepare(
-              'SELECT COUNT(*) as count FROM students WHERE classroom_id = ?'
-            ).get(examSession.classroom_id) as any)?.count || 0
-          : 0;
-
-        // Chỉ gửi danh sách cardId đã nộp để Projector hiển thị ô tick (KHÔNG gửi lộ đáp án cụ thể)
-        io.to(`session:${sessionId}`).emit(SOCKET_EVENTS.UPDATE_SUBMITTED_STUDENTS, {
-          submittedCardIds: Object.keys(session.answers).map(Number),
-          totalStudents,
-        });
-      }
+      submitAnswers(sessionId, records);
     });
 
     // === Khóa câu hỏi (hết giờ hoặc GV bấm Khóa) ===
     socket.on(SOCKET_EVENTS.LOCK_QUESTION, ({ sessionId }) => {
       const session = activeSessions.get(sessionId);
-      if (!session || session.isLocked) return;
+      if (!session || session.isLocked || !session.currentQuestionId) return;
 
       session.isLocked = true;
 
       const db = getDB();
-      const question = db.prepare(
-        'SELECT * FROM questions WHERE id = ?'
-      ).get(session.currentQuestionId) as any;
-      const examSession = db.prepare(
-        'SELECT classroom_id FROM exam_sessions WHERE id = ?'
-      ).get(sessionId) as any;
+      const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(session.currentQuestionId) as any;
 
-      // Phân bố đáp án
       const distribution = { A: 0, B: 0, C: 0, D: 0 };
       Object.values(session.answers).forEach((ans) => {
         if (ans in distribution) distribution[ans as keyof typeof distribution]++;
       });
 
-      // Lưu kết quả vào database
-      if (question && examSession) {
-        const students = db.prepare(
-          'SELECT * FROM students WHERE classroom_id = ?'
-        ).all(examSession.classroom_id) as any[];
-
-        const insertAnswer = db.prepare(`
-          INSERT OR REPLACE INTO session_answers
-            (id, session_id, question_id, student_id, selected_option, is_correct, submitted_at)
-          VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-        `);
-
-        const insertMany = db.transaction(() => {
-          students.forEach((student) => {
-            const answer = session.answers[student.card_id];
-            if (answer) {
-              insertAnswer.run(
-                uuidv4(),
-                sessionId,
-                session.currentQuestionId,
-                student.id,
-                answer,
-                answer === question.correct_option ? 1 : 0
-              );
-            }
-          });
-        });
-        insertMany();
-      }
-
-      // Broadcast kết quả tới tất cả client trong room (hiện đáp án đúng + phân bố %)
       io.to(`session:${sessionId}`).emit(SOCKET_EVENTS.QUESTION_LOCKED, {
         correctOption: question?.correct_option || 'A',
         answerDistribution: distribution,

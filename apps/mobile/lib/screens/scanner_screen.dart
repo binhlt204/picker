@@ -1,6 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
+import 'package:http/http.dart' as http;
 import '../services/socket_service.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -11,13 +16,13 @@ class ScannerScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
 
   const ScannerScreen({
-    Key? key,
+    super.key,
     required this.serverUrl,
     required this.sessionId,
     required this.sessionTitle,
     required this.className,
     required this.cameras,
-  }) : super(key: key);
+  });
 
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
@@ -34,33 +39,144 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Timer? _countdownTimer;
   int _secondsLeft = 0;
 
+  bool _isScanningLoopActive = false;
+  bool _isProcessingFrame = false;
+  String _lastDetectedInfo = '';
+
   @override
   void initState() {
     super.initState();
     _initCamera();
     _initSocket();
+    _fetchCurrentQuestion();
+  }
+
+  Future<void> _fetchCurrentQuestion() async {
+    try {
+      final res = await http.get(
+        Uri.parse('${widget.serverUrl}/api/sessions/${widget.sessionId}/current-question'),
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _currentQuestion = data;
+          _isLocked = data['isLocked'] ?? false;
+          _secondsLeft = data['timeLimit'] ?? 30;
+          if (data['submittedCardIds'] != null) {
+            final List<dynamic> list = data['submittedCardIds'];
+            for (var id in list) {
+              _scannedCardIds.add(id as int);
+            }
+            _scannedCount = _scannedCardIds.length;
+          }
+        });
+        if (!_isLocked && _secondsLeft > 0) {
+          _startTimer();
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching current question: $e");
+    }
   }
 
   Future<void> _initCamera() async {
-    if (widget.cameras.isEmpty) return;
+    List<CameraDescription> available = widget.cameras;
+    if (available.isEmpty) {
+      try {
+        available = await availableCameras();
+      } catch (e) {
+        debugPrint("Error loading cameras on iOS/Android: $e");
+      }
+    }
 
-    // Use back camera
-    final backCamera = widget.cameras.firstWhere(
+    if (available.isEmpty) {
+      debugPrint("Không tìm thấy camera khả dụng.");
+      return;
+    }
+
+    final backCamera = available.firstWhere(
       (c) => c.lensDirection == CameraLensDirection.back,
-      orElse: () => widget.cameras.first,
+      orElse: () => available.first,
     );
 
     _cameraController = CameraController(
       backCamera,
-      ResolutionPreset.high,
+      ResolutionPreset.medium, // Medium giúp chụp nhanh 100-150ms và độ phân giải đủ sắc nét cho ArUco
       enableAudio: false,
     );
 
     try {
       await _cameraController!.initialize();
-      if (mounted) setState(() {});
+      // Khóa hướng chụp ảnh đứng (Portrait) chuẩn cho iOS và Android
+      try {
+        await _cameraController!.lockCaptureOrientation(DeviceOrientation.portraitUp);
+      } catch (_) {}
+
+      if (mounted) {
+        setState(() {});
+        _startAutoScanLoop();
+      }
     } catch (e) {
       debugPrint("Camera error: $e");
+    }
+  }
+
+  void _startAutoScanLoop() {
+    _isScanningLoopActive = true;
+    _runScanCycle();
+  }
+
+  Future<void> _runScanCycle() async {
+    while (_isScanningLoopActive && mounted) {
+      if (_cameraController != null &&
+          _cameraController!.value.isInitialized &&
+          !_isProcessingFrame &&
+          !_isLocked &&
+          _currentQuestion != null) {
+        _isProcessingFrame = true;
+        try {
+          final XFile file = await _cameraController!.takePicture();
+          final bytes = await file.readAsBytes();
+          if (!kIsWeb) {
+            try {
+              await File(file.path).delete();
+            } catch (_) {}
+          }
+
+          // Gửi frame tới server để nhận diện ArUco OpenCV
+          final res = await http.post(
+            Uri.parse('${widget.serverUrl}/api/sessions/${widget.sessionId}/scan-frame'),
+            headers: {'Content-Type': 'application/octet-stream'},
+            body: bytes,
+          );
+
+          if (res.statusCode == 200 && mounted) {
+            final data = jsonDecode(res.body);
+            final List<dynamic> accepted = data['accepted'] ?? [];
+            if (accepted.isNotEmpty) {
+              final newNames = <String>[];
+              for (var item in accepted) {
+                final cardId = item['cardId'] as int;
+                final name = item['studentName'] as String;
+                final ans = item['answer'] as String;
+                _scannedCardIds.add(cardId);
+                newNames.add('#$cardId $name ($ans)');
+              }
+
+              setState(() {
+                _scannedCount = _scannedCardIds.length;
+                _lastDetectedInfo = '✅ Đã nhận: ${newNames.join(', ')}';
+              });
+            }
+          }
+        } catch (e) {
+          debugPrint("Scan cycle error: $e");
+        } finally {
+          _isProcessingFrame = false;
+        }
+      }
+
+      await Future.delayed(const Duration(milliseconds: 350));
     }
   }
 
@@ -76,6 +192,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
           _scannedCardIds.clear();
           _scannedCount = 0;
           _secondsLeft = data['timeLimit'] ?? 30;
+          _lastDetectedInfo = '';
         });
         _startTimer();
       },
@@ -83,6 +200,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         if (!mounted) return;
         setState(() {
           _isLocked = true;
+          _lastDetectedInfo = '🔒 Câu hỏi đã khóa!';
         });
         _countdownTimer?.cancel();
       },
@@ -117,7 +235,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
     });
   }
 
-  // Submit mock card for demonstration or testing when physical cards are scanned
   void _submitCardAnswer(int cardId, String answer) {
     if (_currentQuestion == null || _isLocked) return;
 
@@ -139,6 +256,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   void dispose() {
+    _isScanningLoopActive = false;
     _countdownTimer?.cancel();
     _cameraController?.dispose();
     _socketService.disconnect();
@@ -147,12 +265,16 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final questionOrder = _currentQuestion?['questionOrder'] ?? '?';
+    final totalQ = _currentQuestion?['totalQuestions'] ?? '?';
+    final questionContent = _currentQuestion?['content'] ?? 'Chờ giáo viên bắt đầu câu hỏi...';
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Stack(
           children: [
-            // Camera Feed or Placeholder
+            // Camera Feed or Loading
             if (_cameraController != null && _cameraController!.value.isInitialized)
               Positioned.fill(
                 child: CameraPreview(_cameraController!),
@@ -165,7 +287,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 ),
               ),
 
-            // Top Header Overlay
+            // Top Header Bar
             Positioned(
               top: 16,
               left: 16,
@@ -173,42 +295,68 @@ class _ScannerScreenState extends State<ScannerScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(16),
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.white12),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black45, blurRadius: 15, offset: Offset(0, 4))
+                  ],
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
                         children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.blueAccent.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'CÂU $questionOrder/$totalQ',
+                                  style: const TextStyle(
+                                    color: Colors.cyanAccent,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  widget.className,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
                           Text(
-                            _currentQuestion != null
-                                ? 'Câu ${_currentQuestion!['questionOrder']}/${_currentQuestion!['totalQuestions']}'
-                                : 'Đang chờ bắt đầu...',
+                            questionContent,
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 13,
                             ),
-                          ),
-                          Text(
-                            '${widget.className} • ${widget.sessionTitle}',
-                            style: const TextStyle(color: Colors.white54, fontSize: 12),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: 8),
                     // Countdown Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _secondsLeft <= 5 ? Colors.red.withOpacity(0.3) : Colors.blue.withOpacity(0.3),
+                        color: _secondsLeft <= 5
+                            ? Colors.red.withValues(alpha: 0.3)
+                            : Colors.blue.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _secondsLeft <= 5 ? Colors.redAccent : Colors.blueAccent,
@@ -237,27 +385,68 @@ class _ScannerScreenState extends State<ScannerScreen> {
               ),
             ),
 
-            // Center Target Crosshair
+            // Live Crosshair & Scanning status
             Center(
               child: Container(
-                width: 260,
-                height: 260,
+                width: 270,
+                height: 270,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.greenAccent.withOpacity(0.5), width: 2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Center(
-                  child: Text(
-                    'Hướng camera về phía học sinh',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 12,
-                      backgroundColor: Colors.black45,
-                    ),
+                  border: Border.all(
+                    color: _isProcessingFrame ? Colors.cyanAccent : Colors.greenAccent.withValues(alpha: 0.6),
+                    width: _isProcessingFrame ? 3 : 2,
                   ),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.qr_code_scanner,
+                            color: Colors.white.withValues(alpha: 0.4),
+                            size: 48,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _isProcessingFrame ? 'Đang nhận diện...' : 'Quét thẻ ArUco học sinh',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 12,
+                              backgroundColor: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+
+            // Detection Notification Toast
+            if (_lastDetectedInfo.isNotEmpty)
+              Positioned(
+                top: 90,
+                left: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF047857),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4))
+                    ],
+                  ),
+                  child: Text(
+                    _lastDetectedInfo,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
 
             // Bottom Control Sheet
             Positioned(
@@ -267,7 +456,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A).withOpacity(0.95),
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: Colors.white12),
                   boxShadow: const [
@@ -286,7 +475,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                             const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 20),
                             const SizedBox(width: 6),
                             Text(
-                              'Đã quét: $_scannedCount học sinh',
+                              'Đã nhận: $_scannedCount học sinh',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -299,13 +488,31 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.2),
+                              color: Colors.red.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
                               'ĐÃ KHÓA',
                               style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
                             ),
+                          )
+                        else
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.greenAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Tự động quét',
+                                style: TextStyle(color: Colors.greenAccent, fontSize: 11),
+                              ),
+                            ],
                           ),
                       ],
                     ),
@@ -338,7 +545,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           onPressed: _isLocked
                               ? null
                               : () {
-                                  // Quét mẫu thẻ ngẫu nhiên để test
                                   final nextCardId = _scannedCardIds.length + 1;
                                   if (nextCardId <= 15) {
                                     final options = ['A', 'B', 'C', 'D'];

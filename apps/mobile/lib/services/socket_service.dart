@@ -1,7 +1,7 @@
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 class SocketService {
-  IO.Socket? _socket;
+  socket_io.Socket? _socket;
   bool isConnected = false;
 
   void connect(
@@ -12,7 +12,7 @@ class SocketService {
     Function()? onSessionEnded,
     Function(bool)? onConnectionChange,
   }) {
-    _socket = IO.io(serverUrl, <String, dynamic>{
+    _socket = socket_io.io(serverUrl, <String, dynamic>{
       'transports': ['websocket', 'polling'],
       'autoConnect': true,
     });

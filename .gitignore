@@ -9,12 +9,27 @@ build/
 .env
 .env.local
 .DS_Store
+
+# Logs & crash dumps
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+hs_err_*.log
+replay_*.log
+
+# Editor & IDE
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Build outputs & artifacts
 scripts/output/
 plan/
+*.apk
+*.aab
+*.ipa
+
+*.aab
+*.ipa
+*.log

@@ -27,7 +27,8 @@ const io = new Server(httpServer, {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.raw({ type: ['image/*', 'application/octet-stream'], limit: '10mb' }));
 
 // Khởi tạo database
 getDB();
@@ -40,6 +41,8 @@ app.use('/api', questionRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api', exportRoutes);
 app.use('/api/admin', adminRoutes);
+
+app.get('/download-app', (req, res) => res.download('D:/pickball/pickball-app.apk'));
 
 // Health check
 app.get('/api/health', (req, res) => {
