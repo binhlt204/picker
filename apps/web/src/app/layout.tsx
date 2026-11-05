@@ -1,8 +1,12 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { AuthGate, AuthProvider } from '@/components/auth/AuthProvider';
+
+// Toàn bộ nội dung là tiếng Việt có dấu nên nạp thêm subset 'vietnamese'
+const inter = Inter({ subsets: ['latin', 'vietnamese'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'Pickball - Hệ Thống Trắc Nghiệm Thẻ Giấy Thời Gian Thực',
@@ -15,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" className="h-full antialiased dark">
-      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
+    <html lang="vi" className={`h-full antialiased dark ${inter.variable}`}>
+      <body className="min-h-full flex flex-col font-sans selection:bg-blue-600 selection:text-white">
         <AuthProvider>
           <Suspense fallback={<div className="h-16 bg-slate-900 border-b border-slate-800" />}>
             <Navbar />

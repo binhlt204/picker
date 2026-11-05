@@ -55,7 +55,7 @@ export function StudentGrid({
             <div
               key={cardId}
               title={`${name}${answer ? ` (Chọn: ${answer})` : ''}`}
-              className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all duration-300 cursor-default select-none ${badgeStyle}`}
+              className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all duration-300 cursor-default select-none ${badgeStyle}`}
             >
               <span className="text-xs font-mono font-bold tracking-tight">
                 #{cardId.toString().padStart(2, '0')}

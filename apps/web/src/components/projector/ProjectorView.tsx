@@ -108,7 +108,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/sessions')}
-              className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition"
+              className="p-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition"
               title="Thoát về danh sách phiên"
             >
               <FiHome className="text-xl" />
@@ -125,7 +125,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
             </div>
 <button
               onClick={() => setShowTimerSettings(true)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition text-sm font-semibold"
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition text-sm font-semibold"
               title="Cài đặt thời gian"
             >
               <FiClock className="text-lg" />
@@ -133,7 +133,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
             </button>
             <button
               onClick={toggleFullscreen}
-              className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition"
+              className="p-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition"
               title="Toàn màn hình (F11)"
             >
               {isFullscreen ? <FiMinimize className="text-xl" /> : <FiMaximize className="text-xl" />}
@@ -156,7 +156,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
           <button
             onClick={handleStart}
             disabled={questions.length === 0}
-            className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-2xl font-black shadow-[0_0_35px_rgba(59,130,246,0.4)] transition hover:scale-105 active:scale-95 disabled:opacity-50"
+            className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-2xl font-black transition hover:scale-105 active:scale-95 disabled:opacity-50"
           >
             <span>BẮT ĐẦU CÂU 1</span>
             <FiChevronRight className="text-2xl" />
@@ -188,7 +188,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
       {/* Top Header */}
       <header className="flex justify-between items-center gap-4 pb-3 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <span className="px-3.5 py-1.5 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-400 font-black text-base tracking-wide">
+          <span className="px-3.5 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-400 font-black text-base tracking-wide">
             CÂU {currentQuestion.questionOrder} / {currentQuestion.totalQuestions}
           </span>
           <span className="hidden sm:inline text-sm font-medium text-slate-400 truncate max-w-md">
@@ -205,7 +205,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
 
           <button
             onClick={() => setShowTimerSettings(true)}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition text-sm font-semibold"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition text-sm font-semibold"
             title="Cài đặt thời gian"
           >
             <FiClock className="text-lg" />
@@ -213,7 +213,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
           </button>
           <button
             onClick={toggleFullscreen}
-            className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition"
+            className="p-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition"
             title="Toàn màn hình"
           >
             {isFullscreen ? <FiMinimize className="text-lg" /> : <FiMaximize className="text-lg" />}
@@ -224,7 +224,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
       {/* Main Content Area */}
       <main className="flex-1 my-3 flex flex-col justify-center max-w-6xl w-full mx-auto">
         {/* Question Content */}
-        <div className="bg-slate-900/70 border border-slate-800/80 rounded-3xl p-6 md:p-8 backdrop-blur-md shadow-2xl mb-2">
+        <div className="bg-slate-900/70 border border-slate-800/80 rounded-2xl p-6 md:p-8 backdrop-blur-md shadow-2xl mb-2">
           <p className="text-2xl md:text-3xl font-bold leading-relaxed text-slate-100">
             {currentQuestion.content}
           </p>
@@ -267,7 +267,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
             {!isLocked ? (
               <button
                 onClick={() => lockQuestion()}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs md:text-sm font-bold transition active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs md:text-sm font-bold transition active:scale-95"
               >
                 <FiLock className="text-base" />
                 <span>Khóa câu hỏi</span>
@@ -275,7 +275,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
             ) : isLastQuestion ? (
               <button
                 onClick={handleEndAndShowResults}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm md:text-base shadow-lg transition active:scale-95"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm md:text-base transition active:scale-95"
               >
                 <FiAward className="text-lg" />
                 <span>KẾT THÚC & XEM KẾT QUẢ</span>
@@ -283,7 +283,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
             ) : (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm md:text-base shadow-lg transition active:scale-95 animate-pulse"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm md:text-base transition active:scale-95 animate-pulse"
               >
                 <span>CÂU TIẾP THEO</span>
                 <FiChevronRight className="text-lg" />

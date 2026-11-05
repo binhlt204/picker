@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Admin, Resource, defaultDarkTheme, defaultTheme } from 'react-admin';
+import { Admin, Resource } from 'react-admin';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import SchoolIcon from '@mui/icons-material/School';
@@ -13,6 +13,7 @@ import FactCheckIcon from '@mui/icons-material/FactCheck';
 import { authProvider } from './authProvider';
 import { dataProvider } from './dataProvider';
 import { i18nProvider } from './i18n';
+import { pickballAdminTheme } from './theme';
 import { Dashboard } from './Dashboard';
 import {
   AnswerList,
@@ -54,8 +55,8 @@ export default function AdminApp() {
             authProvider={authProvider}
             i18nProvider={i18nProvider}
             dashboard={Dashboard}
-            theme={defaultTheme}
-            darkTheme={defaultDarkTheme}
+            theme={pickballAdminTheme}
+            darkTheme={pickballAdminTheme}
             defaultTheme="dark"
             requireAuth
           >

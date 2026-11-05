@@ -6,15 +6,16 @@ import {
   FiUsers,
   FiPlus,
   FiTrash2,
-  FiEdit,
   FiDownload,
   FiCheck,
-  FiX,
   FiUserPlus,
   FiFileText,
-  FiGrid,
   FiRefreshCw,
 } from 'react-icons/fi';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
+import { Switch } from '@/components/ui/Switch';
 
 interface Student {
   id: string;
@@ -230,7 +231,9 @@ export default function ClassroomsPage() {
 
         <div className="flex items-center gap-3">
           {selectedClass && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={downloadingCards}
               onClick={async () => {
                 setDownloadingCards(true);
@@ -243,20 +246,16 @@ export default function ClassroomsPage() {
                 }
               }}
               title={`Tải PDF thẻ in theo danh sách học sinh lớp ${selectedClass.name}`}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-60 text-slate-200 border border-slate-700 text-xs font-bold transition shadow-sm"
             >
-              <FiDownload className="text-blue-400" />
+              <FiDownload />
               <span>{downloadingCards ? 'Đang tạo PDF...' : `Tải Thẻ In Lớp ${selectedClass.name}`}</span>
-            </button>
+            </Button>
           )}
 
-          <button
-            onClick={() => setIsCreateClassOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition active:scale-95"
-          >
+          <Button size="sm" onClick={() => setIsCreateClassOpen(true)}>
             <FiPlus />
             <span>Thêm Lớp Mới</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -271,15 +270,12 @@ export default function ClassroomsPage() {
           {loading ? (
             <div className="p-8 text-center text-slate-400">Đang tải danh sách lớp...</div>
           ) : classrooms.length === 0 ? (
-            <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center">
+            <Card padding="md" className="text-center">
               <p className="text-sm text-slate-400 mb-3">Chưa có lớp học nào.</p>
-              <button
-                onClick={() => setIsCreateClassOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-blue-600 text-xs font-bold text-white inline-flex items-center gap-1.5"
-              >
+              <Button size="sm" onClick={() => setIsCreateClassOpen(true)}>
                 <FiPlus /> Tạo ngay
-              </button>
-            </div>
+              </Button>
+            </Card>
           ) : (
             <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
               {classrooms.map((c) => {
@@ -288,7 +284,7 @@ export default function ClassroomsPage() {
                   <div
                     key={c.id}
                     onClick={() => loadClassDetails(c.id)}
-                    className={`group p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                    className={`group p-4 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
                       isSelected
                         ? 'bg-blue-600/15 border-blue-500/60 shadow-lg shadow-blue-500/10'
                         : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
@@ -321,7 +317,7 @@ export default function ClassroomsPage() {
         </div>
 
         {/* Right Column: Students in Selected Class (8 cols) */}
-        <div className="lg:col-span-8 bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between min-h-[500px]">
+        <Card padding="lg" className="lg:col-span-8 flex flex-col justify-between min-h-[500px]">
           {selectedClass ? (
             <div>
               {/* Class Header Bar */}
@@ -340,32 +336,27 @@ export default function ClassroomsPage() {
 
                 <div className="flex items-center gap-2">
                   {selectedClass.students && selectedClass.students.length > 0 && (
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={handleReorderAZ}
                       disabled={actionLoading}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition"
                       title="Sắp xếp lại toàn bộ mã thẻ #01..#50 theo thứ tự bảng chữ cái A-Z"
                     >
                       <FiRefreshCw className={actionLoading ? 'animate-spin' : ''} />
                       <span>Sắp xếp lại thẻ (A-Z)</span>
-                    </button>
+                    </Button>
                   )}
 
-                  <button
-                    onClick={() => setIsBulkImportOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition"
-                  >
-                    <FiFileText className="text-emerald-400" />
+                  <Button variant="secondary" size="sm" onClick={() => setIsBulkImportOpen(true)}>
+                    <FiFileText />
                     <span>Dán từ Excel</span>
-                  </button>
+                  </Button>
 
-                  <button
-                    onClick={() => setIsAddStudentOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition"
-                  >
+                  <Button size="sm" onClick={() => setIsAddStudentOpen(true)}>
                     <FiUserPlus />
                     <span>Thêm 1 HS</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -379,22 +370,19 @@ export default function ClassroomsPage() {
                   <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
                     Nhập nhanh danh sách từ Excel hoặc thêm từng học sinh để bắt đầu gán thẻ.
                   </p>
-                  <button
-                    onClick={() => setIsBulkImportOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-2"
-                  >
+                  <Button size="sm" onClick={() => setIsBulkImportOpen(true)}>
                     <FiFileText /> Dán danh sách học sinh
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto pr-1">
                   {selectedClass.students.map((student) => (
                     <div
                       key={student.id}
-                      className="group flex items-center justify-between p-3 rounded-2xl bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 transition"
+                      className="group flex items-center justify-between p-3 rounded-lg bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-400 font-mono font-black text-sm flex items-center justify-center flex-shrink-0">
+                        <span className="w-9 h-9 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-400 font-mono font-black text-sm flex items-center justify-center flex-shrink-0">
                           #{student.card_id.toString().padStart(2, '0')}
                         </span>
                         <span className="text-sm font-semibold text-slate-200 truncate max-w-[140px]">
@@ -419,186 +407,114 @@ export default function ClassroomsPage() {
               Chọn hoặc tạo một lớp học ở cột bên trái để quản lý danh sách học sinh.
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Modal: Create Class */}
-      {isCreateClassOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">Tạo Lớp Học Mới</h3>
-              <button
-                onClick={() => setIsCreateClassOpen(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <FiX className="text-xl" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateClass} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Tên lớp học
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ví dụ: 10A1, 11 Chuyên Lý..."
-                  value={newClassName}
-                  onChange={(e) => setNewClassName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
-                  autoFocus
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateClassOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading || !newClassName.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold disabled:opacity-50"
-                >
-                  {actionLoading ? 'Đang tạo...' : 'Tạo Lớp'}
-                </button>
-              </div>
-            </form>
+      <Modal open={isCreateClassOpen} onClose={() => setIsCreateClassOpen(false)} title="Tạo Lớp Học Mới">
+        <form onSubmit={handleCreateClass} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tên lớp học</label>
+            <input
+              type="text"
+              placeholder="Ví dụ: 10A1, 11 Chuyên Lý..."
+              value={newClassName}
+              onChange={(e) => setNewClassName(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              autoFocus
+              required
+            />
           </div>
-        </div>
-      )}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIsCreateClassOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" size="sm" disabled={actionLoading || !newClassName.trim()}>
+              {actionLoading ? 'Đang tạo...' : 'Tạo Lớp'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal: Add Single Student */}
-      {isAddStudentOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">Thêm Học Sinh</h3>
-              <button
-                onClick={() => setIsAddStudentOpen(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <FiX className="text-xl" />
-              </button>
-            </div>
-            <form onSubmit={handleAddSingleStudent} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Họ và tên học sinh
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ví dụ: Nguyễn Văn An"
-                  value={newStudentName}
-                  onChange={(e) => setNewStudentName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
-                  autoFocus
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Mã số thẻ ArUco (1 - 50)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  placeholder="Nhập số từ 1 đến 50"
-                  value={newStudentCard}
-                  onChange={(e) => setNewStudentCard(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddStudentOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold disabled:opacity-50"
-                >
-                  {actionLoading ? 'Đang thêm...' : 'Lưu học sinh'}
-                </button>
-              </div>
-            </form>
+      <Modal open={isAddStudentOpen} onClose={() => setIsAddStudentOpen(false)} title="Thêm Học Sinh">
+        <form onSubmit={handleAddSingleStudent} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Họ và tên học sinh</label>
+            <input
+              type="text"
+              placeholder="Ví dụ: Nguyễn Văn An"
+              value={newStudentName}
+              onChange={(e) => setNewStudentName(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              autoFocus
+              required
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mã số thẻ ArUco (1 - 50)</label>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              placeholder="Nhập số từ 1 đến 50"
+              value={newStudentCard}
+              onChange={(e) => setNewStudentCard(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIsAddStudentOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" size="sm" disabled={actionLoading}>
+              {actionLoading ? 'Đang thêm...' : 'Lưu học sinh'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal: Bulk Import from Excel */}
-      {isBulkImportOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-white">Dán Danh Sách Học Sinh Từ Excel</h3>
-                <p className="text-xs text-slate-400">Mỗi học sinh trên 1 dòng. Hệ thống sẽ tự động gán mã thẻ #01..#50.</p>
-              </div>
-              <button
-                onClick={() => setIsBulkImportOpen(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <FiX className="text-xl" />
-              </button>
-            </div>
-            <form onSubmit={handleBulkImport} className="space-y-4">
-              <div>
-                <textarea
-                  rows={8}
-                  placeholder={`Nguyễn Văn An\nTrần Thị Bình\nLê Hoàng Cường\nPhạm Minh Dũng...\n(Hoặc dán có số: 1. Nguyễn Văn An, 2. Trần Thị Bình...)`}
-                  value={bulkNamesText}
-                  onChange={(e) => setBulkNamesText(e.target.value)}
-                  className="w-full p-4 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-emerald-500"
-                  required
-                />
-              </div>
-
-              <div className="flex items-center gap-2 px-1">
-                <input
-                  type="checkbox"
-                  id="sortAZCheckbox"
-                  checked={sortAZ}
-                  onChange={(e) => setSortAZ(e.target.checked)}
-                  className="w-4 h-4 rounded text-emerald-600 bg-slate-800 border-slate-700 focus:ring-emerald-500 cursor-pointer"
-                />
-                <label htmlFor="sortAZCheckbox" className="text-xs text-slate-300 font-semibold cursor-pointer select-none">
-                  Tự động sắp xếp theo thứ tự bảng chữ cái A-Z (theo Tên chuẩn Việt Nam)
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsBulkImportOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading || !bulkNamesText.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  <FiCheck />
-                  <span>{actionLoading ? 'Đang nhập...' : 'Nhập Danh Sách'}</span>
-                </button>
-              </div>
-            </form>
+      <Modal
+        open={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        title="Dán Danh Sách Học Sinh Từ Excel"
+        maxWidth="xl"
+      >
+        <p className="text-xs text-slate-400 -mt-2 mb-4">Mỗi học sinh trên 1 dòng. Hệ thống sẽ tự động gán mã thẻ #01..#50.</p>
+        <form onSubmit={handleBulkImport} className="space-y-4">
+          <div>
+            <textarea
+              rows={8}
+              placeholder={`Nguyễn Văn An\nTrần Thị Bình\nLê Hoàng Cường\nPhạm Minh Dũng...\n(Hoặc dán có số: 1. Nguyễn Văn An, 2. Trần Thị Bình...)`}
+              value={bulkNamesText}
+              onChange={(e) => setBulkNamesText(e.target.value)}
+              className="w-full p-4 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-blue-500"
+              required
+            />
           </div>
-        </div>
-      )}
+
+          <div className="flex items-center gap-3 px-1">
+            <Switch checked={sortAZ} onChange={setSortAZ} label="Tự động sắp xếp theo thứ tự bảng chữ cái A-Z" />
+            <label className="text-xs text-slate-300 font-semibold cursor-pointer select-none" onClick={() => setSortAZ(!sortAZ)}>
+              Tự động sắp xếp theo thứ tự bảng chữ cái A-Z (theo Tên chuẩn Việt Nam)
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIsBulkImportOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" size="sm" disabled={actionLoading || !bulkNamesText.trim()}>
+              <FiCheck />
+              <span>{actionLoading ? 'Đang nhập...' : 'Nhập Danh Sách'}</span>
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

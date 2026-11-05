@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import '../services/socket_service.dart';
+import '../theme/app_colors.dart';
 import '../utils/server_timer.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -307,7 +308,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.92),
+                  color: AppColors.surface.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.white12),
                   boxShadow: const [
@@ -325,13 +326,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.blueAccent.withValues(alpha: 0.3),
+                                  color: AppColors.brand.withValues(alpha: 0.3),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   'CÂU $questionOrder/$totalQ',
                                   style: const TextStyle(
-                                    color: Colors.cyanAccent,
+                                    color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
                                   ),
@@ -368,7 +369,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF10B981),
+                                    color: AppColors.forOption(correctOption),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -392,11 +393,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: timeWarning
-                            ? Colors.red.withValues(alpha: 0.3)
-                            : Colors.blue.withValues(alpha: 0.3),
+                            ? AppColors.danger.withValues(alpha: 0.3)
+                            : AppColors.brand.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: timeWarning ? Colors.redAccent : Colors.blueAccent,
+                          color: timeWarning ? AppColors.danger : AppColors.brand,
                         ),
                       ),
                       child: Row(
@@ -404,13 +405,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           Icon(
                             Icons.timer_outlined,
                             size: 16,
-                            color: timeWarning ? Colors.redAccent : Colors.blueAccent,
+                            color: timeWarning ? AppColors.danger : AppColors.brand,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             timeLabel,
                             style: TextStyle(
-                              color: timeWarning ? Colors.redAccent : Colors.blueAccent,
+                              color: timeWarning ? AppColors.danger : AppColors.brand,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -429,7 +430,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 height: 270,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: _isProcessingFrame ? Colors.cyanAccent : Colors.greenAccent.withValues(alpha: 0.6),
+                    color: _isProcessingFrame ? AppColors.brand : AppColors.success.withValues(alpha: 0.6),
                     width: _isProcessingFrame ? 3 : 2,
                   ),
                   borderRadius: BorderRadius.circular(24),
@@ -471,7 +472,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF047857),
+                    color: AppColors.success,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: const [
                       BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4))
@@ -493,7 +494,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.95),
+                  color: AppColors.surface.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: Colors.white12),
                   boxShadow: const [
@@ -509,7 +510,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 20),
+                            const Icon(Icons.check_circle_outline, color: AppColors.success, size: 20),
                             const SizedBox(width: 6),
                             Text(
                               'Đã nhận: $_scannedCount học sinh',
@@ -525,12 +526,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.2),
+                              color: AppColors.danger.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
                               'ĐÃ KHÓA',
-                              style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.bold),
                             ),
                           )
                         else
@@ -540,14 +541,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
                                 width: 8,
                                 height: 8,
                                 decoration: const BoxDecoration(
-                                  color: Colors.greenAccent,
+                                  color: AppColors.success,
                                   shape: BoxShape.circle,
                                 ),
                               ),
                               const SizedBox(width: 6),
                               const Text(
                                 'Tự động quét',
-                                style: TextStyle(color: Colors.greenAccent, fontSize: 11),
+                                style: TextStyle(color: AppColors.success, fontSize: 11),
                               ),
                             ],
                           ),
@@ -561,7 +562,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         Expanded(
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade900,
+                              backgroundColor: AppColors.dangerStrong,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -574,7 +575,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         const SizedBox(width: 10),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo.shade600,
+                            backgroundColor: AppColors.surfaceSubtle,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -594,7 +595,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         const SizedBox(width: 10),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF334155),
+                            backgroundColor: AppColors.surfaceSubtle,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

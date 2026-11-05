@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/app_colors.dart';
 import '../utils/server_timer.dart';
 
 /// Gửi thay đổi cài đặt hẹn giờ lên server (chỉ các trường được truyền).
@@ -34,7 +35,8 @@ Future<void> showTimerSettingsSheet({
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.white,
+    // Không đặt backgroundColor: lấy từ bottomSheetTheme (AppTheme.dark) để nền tối
+    // nhất quán với toàn app thay vì nền trắng kiểu Plickers trước đây.
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (sheetContext) => DraggableScrollableSheet(
       expand: false,
@@ -53,17 +55,17 @@ Future<void> showTimerSettingsSheet({
                   width: 40,
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(color: AppColors.textDisabled, borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               const Text(
                 'Cài đặt thời gian',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 4),
               const Text(
                 'Đồng bộ ngay với máy chiếu. Sửa thời gian của câu đang chạy sẽ đếm lại câu đó từ đầu.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
               const SizedBox(height: 8),
               SwitchListTile(
@@ -98,7 +100,7 @@ Future<void> showTimerSettingsSheet({
               const Divider(),
               const Padding(
                 padding: EdgeInsets.only(top: 4, bottom: 4),
-                child: Text('Thời gian từng câu', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+                child: Text('Thời gian từng câu', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
               ),
               ...questions.map((q) {
                 final id = q['id'].toString();
@@ -109,13 +111,13 @@ Future<void> showTimerSettingsSheet({
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
                   enabled: s.timerEnabled,
-                  tileColor: isCurrent ? const Color(0xFFE0F2FE) : null,
+                  tileColor: isCurrent ? AppColors.brand.withValues(alpha: 0.15) : null,
                   leading: CircleAvatar(
                     radius: 14,
-                    backgroundColor: isCurrent ? const Color(0xFF0284C7) : const Color(0xFFE2E8F0),
+                    backgroundColor: isCurrent ? AppColors.brand : AppColors.surfaceAlt,
                     child: Text(
                       '$order',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isCurrent ? Colors.white : const Color(0xFF475569)),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isCurrent ? Colors.white : AppColors.textSecondary),
                     ),
                   ),
                   title: Text(q['content']?.toString() ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),

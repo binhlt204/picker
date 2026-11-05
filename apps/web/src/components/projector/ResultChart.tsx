@@ -23,7 +23,7 @@ export function ResultChart({ distribution, correctOption, totalSubmitted }: Res
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Left: Overall Accuracy */}
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
             <span className="text-2xl font-black text-emerald-400 font-mono">
               {accuracyPct}%
             </span>
@@ -36,15 +36,15 @@ export function ResultChart({ distribution, correctOption, totalSubmitted }: Res
 
         {/* Right: Quick stats badges */}
         <div className="flex items-center gap-3">
-          <div className="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700/60 text-center">
+          <div className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700/60 text-center">
             <div className="text-xs text-slate-400 font-medium">Đã nộp</div>
             <div className="text-lg font-black text-white font-mono">{totalSubmitted}</div>
           </div>
-          <div className="px-4 py-2 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-center">
+          <div className="px-4 py-2 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-center">
             <div className="text-xs text-emerald-400 font-medium">Lựa chọn đúng</div>
             <div className="text-lg font-black text-emerald-400 font-mono">{correctCount}</div>
           </div>
-          <div className="px-4 py-2 rounded-xl bg-rose-950/40 border border-rose-500/40 text-center">
+          <div className="px-4 py-2 rounded-lg bg-rose-950/40 border border-rose-500/40 text-center">
             <div className="text-xs text-rose-400 font-medium">Lựa chọn sai</div>
             <div className="text-lg font-black text-rose-400 font-mono">{incorrectCount}</div>
           </div>

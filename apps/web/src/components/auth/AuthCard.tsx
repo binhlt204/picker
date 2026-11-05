@@ -1,6 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
-import { FiLayers, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
+import { FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
+import { Logo } from '@/components/ui/Logo';
+import { Button } from '@/components/ui/Button';
 
 export function AuthCard({
   title,
@@ -17,9 +19,7 @@ export function AuthCard({
     <div className="flex-1 flex items-center justify-center px-4 py-10 bg-slate-950 min-h-screen">
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center justify-center gap-3 mb-6">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-xl shadow-lg shadow-blue-500/30">
-            <FiLayers className="text-white" />
-          </div>
+          <Logo />
           <span className="text-2xl font-black tracking-tight text-white">PICKBALL</span>
         </Link>
 
@@ -42,7 +42,7 @@ export function Field({
 }: { label: string; id: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
-      <label htmlFor={id} className="block text-xs font-semibold text-slate-300 mb-1.5">
+      <label htmlFor={id} className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
         {label}
       </label>
       <input
@@ -73,12 +73,8 @@ export function Alert({ type, children }: { type: 'error' | 'success'; children:
 
 export function SubmitButton({ loading, children }: { loading: boolean; children: React.ReactNode }) {
   return (
-    <button
-      type="submit"
-      disabled={loading}
-      className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm py-2.5 shadow-md shadow-blue-600/25 transition active:scale-[0.99]"
-    >
+    <Button type="submit" disabled={loading} className="w-full">
       {loading ? 'Đang xử lý...' : children}
-    </button>
+    </Button>
   );
 }

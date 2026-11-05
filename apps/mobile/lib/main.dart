@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import 'screens/question_controller_screen.dart';
+import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -26,15 +28,7 @@ class PickballMobileApp extends StatelessWidget {
     return MaterialApp(
       title: 'Pickball Scanner',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF020617),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.dark,
       home: const HomeScreen(),
     );
   }
@@ -114,10 +108,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF1E293B),
+          color: isSelected ? AppColors.brand : AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? Colors.blueAccent : Colors.white12,
+            color: isSelected ? AppColors.brand : Colors.white12,
           ),
         ),
         child: Text(
@@ -151,10 +145,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: AppColors.surface,
         title: const Row(
           children: [
-            Icon(Icons.qr_code_scanner, color: Color(0xFF38BDF8)),
+            Icon(Icons.qr_code_scanner, color: AppColors.brand),
             SizedBox(width: 8),
             Text(
               'Pickball Scanner',
@@ -178,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white12),
               ),
@@ -199,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             isDense: true,
                             hintText: 'http://<IP_LAN>:3001',
                             filled: true,
-                            fillColor: const Color(0xFF1E293B),
+                            fillColor: AppColors.surfaceAlt,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
@@ -211,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 8),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2563EB),
+                          backgroundColor: AppColors.brand,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -257,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.wifi_off, size: 48, color: Colors.redAccent),
+                              const Icon(Icons.wifi_off, size: 48, color: AppColors.danger),
                               const SizedBox(height: 8),
                               Text(_error!, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
                               const SizedBox(height: 12),
@@ -279,13 +273,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 final isCompleted = s['status'] == 'COMPLETED';
 
                                 return Card(
-                                  color: const Color(0xFF0F172A),
+                                  color: AppColors.surface,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                     side: BorderSide(
                                       color: isCompleted
                                           ? Colors.white10
-                                          : Colors.blue.withValues(alpha: 0.4),
+                                          : AppColors.brand.withValues(alpha: 0.4),
                                     ),
                                   ),
                                   margin: const EdgeInsets.only(bottom: 12),
@@ -302,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     trailing: ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF2563EB),
+                                        backgroundColor: AppColors.brand,
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),

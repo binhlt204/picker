@@ -3,18 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api, downloadFile } from '@/lib/api';
-import {
-  FiAward,
-  FiDownload,
-  FiArrowLeft,
-  FiCheck,
-  FiX,
-  FiUsers,
-  FiBarChart2,
-  FiCheckCircle,
-  FiAlertTriangle,
-} from 'react-icons/fi';
+import { FiAward, FiDownload, FiArrowLeft } from 'react-icons/fi';
 import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { StatTile } from '@/components/ui/StatTile';
 
 export default function ResultsPage() {
   const params = useParams();
@@ -76,7 +69,7 @@ export default function ResultsPage() {
             <FiArrowLeft /> Quay lại danh sách phiên
           </button>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-            <FiAward className="text-amber-400" />
+            <FiAward className="text-blue-500" />
             <span>Kết Quả: {session.quiz_title}</span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -87,47 +80,33 @@ export default function ResultsPage() {
 
         {/* Export Buttons */}
         <div className="flex items-center gap-3 self-start sm:self-auto">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => downloadFile(`/sessions/${sessionId}/results/export?format=csv`, 'ket-qua.csv').catch((e) => alert(e.message))}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition shadow-sm"
           >
             <FiDownload /> Xuất CSV
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
             onClick={() => downloadFile(`/sessions/${sessionId}/results/export?format=xlsx`, 'ket-qua.xlsx').catch((e) => alert(e.message))}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/25 transition active:scale-95"
           >
             <FiDownload /> Xuất Excel (.xlsx)
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Analytics Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
-          <span className="text-xs text-slate-400 font-medium">Học sinh</span>
-          <div className="text-2xl font-black text-white font-mono mt-1">{summary.totalStudents || 0}</div>
-        </div>
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
-          <span className="text-xs text-slate-400 font-medium">Điểm trung bình</span>
-          <div className="text-2xl font-black text-blue-400 font-mono mt-1">{summary.avgScore || 0}/10</div>
-        </div>
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
-          <span className="text-xs text-slate-400 font-medium">Tỷ lệ đúng TB</span>
-          <div className="text-2xl font-black text-emerald-400 font-mono mt-1">{summary.avgRate || 0}%</div>
-        </div>
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
-          <span className="text-xs text-slate-400 font-medium">Điểm cao nhất</span>
-          <div className="text-2xl font-black text-amber-400 font-mono mt-1">{summary.maxScore || 0}</div>
-        </div>
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
-          <span className="text-xs text-slate-400 font-medium">Điểm thấp nhất</span>
-          <div className="text-2xl font-black text-rose-400 font-mono mt-1">{summary.minScore || 0}</div>
-        </div>
+        <StatTile label="Học sinh" value={summary.totalStudents || 0} />
+        <StatTile label="Điểm trung bình" value={`${summary.avgScore || 0}/10`} />
+        <StatTile label="Tỷ lệ đúng TB" value={`${summary.avgRate || 0}%`} tone="success" />
+        <StatTile label="Điểm cao nhất" value={summary.maxScore || 0} />
+        <StatTile label="Điểm thấp nhất" value={summary.minScore || 0} />
       </div>
 
       {/* Detailed Scoreboard Table */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+      <Card padding="lg" className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <span>Bảng Điểm Chi Tiết Từng Học Sinh</span>
@@ -213,7 +192,7 @@ export default function ResultsPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -7,14 +7,14 @@ import {
   FiPlus,
   FiTrash2,
   FiClock,
-  FiCheckCircle,
   FiHelpCircle,
-  FiX,
   FiChevronRight,
-  FiPlay,
   FiCheck,
 } from 'react-icons/fi';
-import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
+import { ANSWER_KEYS, OPTION_CONFIG } from '@/lib/answerOptions';
 
 interface Question {
   id: string;
@@ -367,13 +367,10 @@ export default function QuizzesPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsCreateQuizOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-lg shadow-amber-600/30 transition active:scale-95 self-start sm:self-auto"
-        >
+        <Button size="sm" onClick={() => setIsCreateQuizOpen(true)} className="self-start sm:self-auto">
           <FiPlus />
           <span>Tạo Đề Mới</span>
-        </button>
+        </Button>
       </div>
 
       {/* Main 2-column layout */}
@@ -387,15 +384,12 @@ export default function QuizzesPage() {
           {loading ? (
             <div className="p-8 text-center text-slate-400">Đang tải đề thi...</div>
           ) : quizzes.length === 0 ? (
-            <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center">
+            <Card padding="md" className="text-center">
               <p className="text-sm text-slate-400 mb-3">Chưa có đề thi nào.</p>
-              <button
-                onClick={() => setIsCreateQuizOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-amber-600 text-xs font-bold text-white inline-flex items-center gap-1.5"
-              >
+              <Button size="sm" onClick={() => setIsCreateQuizOpen(true)}>
                 <FiPlus /> Tạo ngay
-              </button>
-            </div>
+              </Button>
+            </Card>
           ) : (
             <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
               {quizzes.map((q) => {
@@ -404,14 +398,14 @@ export default function QuizzesPage() {
                   <div
                     key={q.id}
                     onClick={() => loadQuizDetails(q.id)}
-                    className={`group p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                    className={`group p-4 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
                       isSelected
-                        ? 'bg-amber-600/15 border-amber-500/60 shadow-lg shadow-amber-500/10'
+                        ? 'bg-blue-600/15 border-blue-500/60'
                         : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
                     }`}
                   >
                     <div>
-                      <h4 className={`text-base font-bold ${isSelected ? 'text-amber-400' : 'text-slate-200'}`}>
+                      <h4 className={`text-base font-bold ${isSelected ? 'text-blue-400' : 'text-slate-200'}`}>
                         {q.title}
                       </h4>
                       <p className="text-xs text-slate-400 mt-0.5">
@@ -438,7 +432,7 @@ export default function QuizzesPage() {
         </div>
 
         {/* Right: Questions list for selected quiz (8 cols) */}
-        <div className="lg:col-span-8 bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between min-h-[500px]">
+        <Card padding="lg" className="lg:col-span-8 flex flex-col justify-between min-h-[500px]">
           {selectedQuiz ? (
             <div>
               {/* Quiz Header Bar */}
@@ -456,20 +450,14 @@ export default function QuizzesPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsBulkWordOpen(true)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-md shadow-indigo-600/20"
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => setIsBulkWordOpen(true)}>
                     <FiFileText />
                     <span>Nhập Đề Từ Word</span>
-                  </button>
-                  <button
-                    onClick={() => setIsAddQuestionOpen(true)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-md shadow-amber-600/20"
-                  >
+                  </Button>
+                  <Button size="sm" onClick={() => setIsAddQuestionOpen(true)}>
                     <FiPlus />
                     <span>Thêm Câu Hỏi</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -483,23 +471,20 @@ export default function QuizzesPage() {
                   <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
                     Thêm các câu hỏi trắc nghiệm kèm 4 lựa chọn A-B-C-D và chỉ định đáp án đúng.
                   </p>
-                  <button
-                    onClick={() => setIsAddQuestionOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold inline-flex items-center gap-2"
-                  >
+                  <Button size="sm" onClick={() => setIsAddQuestionOpen(true)}>
                     <FiPlus /> Thêm câu hỏi đầu tiên
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[550px] overflow-y-auto pr-1">
                   {selectedQuiz.questions.map((q) => (
                     <div
                       key={q.id}
-                      className="group p-5 rounded-2xl bg-slate-800/40 hover:bg-slate-800/70 border border-slate-700/60 transition space-y-3"
+                      className="group p-5 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 border border-slate-700/60 transition space-y-3"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3">
-                          <span className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-400 font-black text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
                             {q.question_order}
                           </span>
                           <h4 className="text-base font-bold text-slate-100 leading-snug">
@@ -509,7 +494,7 @@ export default function QuizzesPage() {
 
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="flex items-center gap-1 text-xs text-slate-400 font-mono">
-                            <FiClock className="text-amber-400" />
+                            <FiClock />
                             {q.time_limit}s
                           </span>
                           <button
@@ -522,26 +507,22 @@ export default function QuizzesPage() {
                         </div>
                       </div>
 
-                      {/* 4 Option previews */}
+                      {/* 4 Option previews — dùng chung bộ màu A/B/C/D (lib/answerOptions) */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                        {[
-                          { key: 'A', text: q.option_a, color: 'text-blue-400' },
-                          { key: 'B', text: q.option_b, color: 'text-amber-400' },
-                          { key: 'C', text: q.option_c, color: 'text-rose-400' },
-                          { key: 'D', text: q.option_d, color: 'text-emerald-400' },
-                        ].map(({ key, text, color }) => {
+                        {ANSWER_KEYS.map((key) => {
+                          const text = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d }[key];
                           const isCorrect = q.correct_option === key;
                           return (
                             <div
                               key={key}
-                              className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${
+                              className={`p-2.5 rounded-lg border text-xs flex items-center justify-between ${
                                 isCorrect
                                   ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-200 font-semibold'
                                   : 'bg-slate-900/50 border-slate-800 text-slate-300'
                               }`}
                             >
                               <div className="flex items-center gap-2 truncate">
-                                <span className={`font-black ${color}`}>{key}.</span>
+                                <span className={`font-black ${OPTION_CONFIG[key].textAccent}`}>{key}.</span>
                                 <span className="truncate">{text}</span>
                               </div>
                               {isCorrect && (
@@ -563,326 +544,232 @@ export default function QuizzesPage() {
               Chọn hoặc tạo một bộ đề ở cột bên trái để soạn câu hỏi.
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Modal: Create Quiz */}
-      {isCreateQuizOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">Tạo Bộ Đề Mới</h3>
-              <button onClick={() => setIsCreateQuizOpen(false)} className="text-slate-400 hover:text-white">
-                <FiX className="text-xl" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateQuiz} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Tiêu đề đề thi
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ví dụ: Kiểm tra 15 phút Toán học..."
-                  value={newQuizTitle}
-                  onChange={(e) => setNewQuizTitle(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-amber-500"
-                  autoFocus
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateQuizOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading || !newQuizTitle.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold disabled:opacity-50"
-                >
-                  {actionLoading ? 'Đang tạo...' : 'Tạo Đề'}
-                </button>
-              </div>
-            </form>
+      <Modal open={isCreateQuizOpen} onClose={() => setIsCreateQuizOpen(false)} title="Tạo Bộ Đề Mới">
+        <form onSubmit={handleCreateQuiz} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tiêu đề đề thi</label>
+            <input
+              type="text"
+              placeholder="Ví dụ: Kiểm tra 15 phút Toán học..."
+              value={newQuizTitle}
+              onChange={(e) => setNewQuizTitle(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              autoFocus
+              required
+            />
           </div>
-        </div>
-      )}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIsCreateQuizOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" size="sm" disabled={actionLoading || !newQuizTitle.trim()}>
+              {actionLoading ? 'Đang tạo...' : 'Tạo Đề'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal: Add Question */}
-      {isAddQuestionOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">Thêm Câu Hỏi Mới</h3>
-              <button onClick={() => setIsAddQuestionOpen(false)} className="text-slate-400 hover:text-white">
-                <FiX className="text-xl" />
-              </button>
-            </div>
-            <form onSubmit={handleAddQuestion} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Nội dung câu hỏi
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Nhập nội dung câu hỏi trắc nghiệm..."
-                  value={questionContent}
-                  onChange={(e) => setQuestionContent(e.target.value)}
-                  className="w-full p-4 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-amber-500"
-                  autoFocus
+      <Modal open={isAddQuestionOpen} onClose={() => setIsAddQuestionOpen(false)} title="Thêm Câu Hỏi Mới" maxWidth="xl">
+        <form onSubmit={handleAddQuestion} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nội dung câu hỏi</label>
+            <textarea
+              rows={3}
+              placeholder="Nhập nội dung câu hỏi trắc nghiệm..."
+              value={questionContent}
+              onChange={(e) => setQuestionContent(e.target.value)}
+              className="w-full p-4 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              autoFocus
+              required
+            />
+          </div>
+
+          {/* 4 Options — nhãn A/B/C/D dùng đúng bộ màu dùng chung (đây là ngoại lệ có chủ đích) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(
+              [
+                ['A', optA, setOptA],
+                ['B', optB, setOptB],
+                ['C', optC, setOptC],
+                ['D', optD, setOptD],
+              ] as const
+            ).map(([key, value, setValue]) => (
+              <div key={key}>
+                <label className={`block text-xs font-bold mb-1 ${OPTION_CONFIG[key].textAccent}`}>Lựa chọn {key}</label>
+                <input
+                  type="text"
+                  placeholder={`Nội dung đáp án ${key}...`}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
+            ))}
+          </div>
 
-              {/* 4 Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-blue-400 mb-1">Lựa chọn A</label>
-                  <input
-                    type="text"
-                    placeholder="Nội dung đáp án A..."
-                    value={optA}
-                    onChange={(e) => setOptA(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-amber-400 mb-1">Lựa chọn B</label>
-                  <input
-                    type="text"
-                    placeholder="Nội dung đáp án B..."
-                    value={optB}
-                    onChange={(e) => setOptB(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-rose-400 mb-1">Lựa chọn C</label>
-                  <input
-                    type="text"
-                    placeholder="Nội dung đáp án C..."
-                    value={optC}
-                    onChange={(e) => setOptC(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-rose-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-emerald-400 mb-1">Lựa chọn D</label>
-                  <input
-                    type="text"
-                    placeholder="Nội dung đáp án D..."
-                    value={optD}
-                    onChange={(e) => setOptD(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500"
-                    required
-                  />
-                </div>
+          {/* Correct Option & Time Limit */}
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Đáp án đúng</label>
+              <div className="flex gap-2">
+                {ANSWER_KEYS.map((key) => (
+                  <button
+                    type="button"
+                    key={key}
+                    onClick={() => setCorrectOpt(key)}
+                    className={`flex-1 py-2 rounded-lg font-bold text-sm border transition ${
+                      correctOpt === key
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                    }`}
+                  >
+                    {key}
+                  </button>
+                ))}
               </div>
+            </div>
 
-              {/* Correct Option & Time Limit */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Đáp án đúng
-                  </label>
-                  <div className="flex gap-2">
-                    {(['A', 'B', 'C', 'D'] as const).map((key) => (
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Thời gian (giây)</label>
+              <input
+                type="number"
+                min="5"
+                max="180"
+                value={timeLimit}
+                onChange={(e) => setTimeLimit(parseInt(e.target.value, 10))}
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIsAddQuestionOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" size="sm" disabled={actionLoading}>
+              {actionLoading ? 'Đang lưu...' : 'Lưu Câu Hỏi'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal: Bulk Import from Word */}
+      <Modal
+        open={isBulkWordOpen}
+        onClose={() => {
+          setIsBulkWordOpen(false);
+          setBulkStep('input');
+        }}
+        title={
+          <span className="flex items-center gap-2">
+            <FiFileText className="text-blue-400" />
+            <span>Dán & Nhập Đề Trắc Nghiệm Từ File Word</span>
+          </span>
+        }
+        maxWidth="3xl"
+      >
+        <p className="text-xs text-slate-400 -mt-2 mb-4">
+          Hỗ trợ cả đáp án dưới mỗi câu HOẶC bảng đáp án ở dưới cuối file (ví dụ: Câu 1 2 3... / Đáp án C B D...)
+        </p>
+
+        {bulkStep === 'input' ? (
+          <div className="flex flex-col">
+            <div className="mb-3 p-3 rounded-lg bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300 font-mono">
+              <span className="text-blue-400 font-bold block mb-1">Hệ thống tự động nhận diện:</span>
+              • Bảng đáp án ở cuối văn bản (như: ĐÁP ÁN VÀ LỜI GIẢI / Câu 1 2 3... Đáp án C B D...)<br />
+              • Hoặc danh sách đáp án ở cuối (1.C 2.B 3.D...)<br />
+              • Hoặc dấu hoa thị (*A.), hoặc dòng Đáp án: A dưới từng câu.
+            </div>
+
+            <div className="mb-4">
+              <textarea
+                rows={10}
+                placeholder={`Dán toàn bộ nội dung file Word vào đây...\n\nVí dụ:\nCâu 1: Dung dịch là hỗn hợp\nA. của chất rắn trong chất lỏng\nB. của chất khí trong chất lỏng\nC. đồng nhất của chất rắn và dung môi\nD. đồng nhất của dung môi và chất tan\n\nCâu 2: Công thức của nước là gì?\nA. CO2\nB. H2O\nC. O2\nD. NaCl\n\nĐÁP ÁN VÀ LỜI GIẢI\nCâu  1  2\nĐáp án  D  B`}
+                value={bulkWordText}
+                onChange={(e) => setBulkWordText(e.target.value)}
+                className="w-full min-h-[220px] p-4 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+              <Button type="button" variant="secondary" size="sm" onClick={() => setIsBulkWordOpen(false)}>
+                Hủy
+              </Button>
+              <Button type="button" size="sm" onClick={handleAnalyzeWord} disabled={!bulkWordText.trim()}>
+                <FiChevronRight className="text-base" />
+                <span>Tiếp Tục: Phân Tích & Chọn Đáp Án</span>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+              <div className="text-xs font-bold text-emerald-400">
+                ⚡ Đã nhận diện {parsedQuestions.length} câu hỏi. Bạn có thể click chọn lại đáp án đúng (A/B/C/D) cho từng câu:
+              </div>
+            </div>
+
+            {/* Danh sách câu hỏi xem trước và chọn đáp án */}
+            <div className="overflow-y-auto pr-1 space-y-3 max-h-[380px]">
+              {parsedQuestions.map((q, idx) => (
+                <div key={idx} className="p-4 rounded-lg bg-slate-800/80 border border-slate-700/80">
+                  <div className="font-bold text-sm text-white mb-2">
+                    <span className="text-blue-400 mr-2">Câu {idx + 1}:</span>
+                    {q.content}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-slate-300 mb-3 pl-2">
+                    <div className={q.correct_option === 'A' ? 'text-emerald-400 font-bold' : ''}>A. {q.option_a}</div>
+                    <div className={q.correct_option === 'B' ? 'text-emerald-400 font-bold' : ''}>B. {q.option_b}</div>
+                    <div className={q.correct_option === 'C' ? 'text-emerald-400 font-bold' : ''}>C. {q.option_c}</div>
+                    <div className={q.correct_option === 'D' ? 'text-emerald-400 font-bold' : ''}>D. {q.option_d}</div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-700/50">
+                    <span className="text-xs font-bold text-slate-400">Đáp án đúng:</span>
+                    {ANSWER_KEYS.map((opt) => (
                       <button
+                        key={opt}
                         type="button"
-                        key={key}
-                        onClick={() => setCorrectOpt(key)}
-                        className={`flex-1 py-2 rounded-xl font-bold text-sm border transition ${
-                          correctOpt === key
-                            ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md'
-                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        onClick={() => {
+                          const updated = [...parsedQuestions];
+                          updated[idx].correct_option = opt;
+                          setParsedQuestions(updated);
+                        }}
+                        className={`w-9 h-8 rounded-lg font-bold text-xs transition flex items-center justify-center ${
+                          q.correct_option === opt
+                            ? 'bg-emerald-500 text-slate-950 font-black'
+                            : 'bg-slate-700/70 text-slate-300 hover:bg-slate-700 hover:text-white'
                         }`}
                       >
-                        {key}
+                        {opt}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Thời gian (giây)
-                  </label>
-                  <input
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={timeLimit}
-                    onChange={(e) => setTimeLimit(parseInt(e.target.value, 10))}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsAddQuestionOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold disabled:opacity-50"
-                >
-                  {actionLoading ? 'Đang lưu...' : 'Lưu Câu Hỏi'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Bulk Import from Word */}
-      {isBulkWordOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <FiFileText className="text-indigo-400" />
-                  <span>Dán & Nhập Đề Trắc Nghiệm Từ File Word</span>
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Hỗ trợ cả đáp án dưới mỗi câu HOẶC bảng đáp án ở dưới cuối file (ví dụ: Câu 1 2 3... / Đáp án C B D...)
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setIsBulkWordOpen(false);
-                  setBulkStep('input');
-                }}
-                className="text-slate-400 hover:text-white"
-              >
-                <FiX className="text-xl" />
-              </button>
+              ))}
             </div>
 
-            {bulkStep === 'input' ? (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="mb-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300 font-mono">
-                  <span className="text-amber-400 font-bold block mb-1">Hệ thống tự động nhận diện:</span>
-                  • Bảng đáp án ở cuối văn bản (như: ĐÁP ÁN VÀ LỜI GIẢI / Câu 1 2 3... Đáp án C B D...)<br />
-                  • Hoặc danh sách đáp án ở cuối (1.C 2.B 3.D...)<br />
-                  • Hoặc dấu hoa thị (*A.), hoặc dòng Đáp án: A dưới từng câu.
-                </div>
-
-                <div className="flex-1 mb-4">
-                  <textarea
-                    rows={10}
-                    placeholder={`Dán toàn bộ nội dung file Word vào đây...\n\nVí dụ:\nCâu 1: Dung dịch là hỗn hợp\nA. của chất rắn trong chất lỏng\nB. của chất khí trong chất lỏng\nC. đồng nhất của chất rắn và dung môi\nD. đồng nhất của dung môi và chất tan\n\nCâu 2: Công thức của nước là gì?\nA. CO2\nB. H2O\nC. O2\nD. NaCl\n\nĐÁP ÁN VÀ LỜI GIẢI\nCâu  1  2\nĐáp án  D  B`}
-                    value={bulkWordText}
-                    onChange={(e) => setBulkWordText(e.target.value)}
-                    className="w-full h-full min-h-[220px] p-4 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-indigo-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setIsBulkWordOpen(false)}
-                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAnalyzeWord}
-                    disabled={!bulkWordText.trim()}
-                    className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-indigo-600/30"
-                  >
-                    <FiChevronRight className="text-base" />
-                    <span>Tiếp Tục: Phân Tích & Chọn Đáp Án</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-                  <div className="text-xs font-bold text-emerald-400">
-                    ⚡ Đã nhận diện {parsedQuestions.length} câu hỏi. Bạn có thể click chọn lại đáp án đúng (A/B/C/D) cho từng câu:
-                  </div>
-                </div>
-
-                {/* Danh sách câu hỏi xem trước và chọn đáp án */}
-                <div className="flex-1 overflow-y-auto pr-1 space-y-3 max-h-[380px]">
-                  {parsedQuestions.map((q, idx) => (
-                    <div key={idx} className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80">
-                      <div className="font-bold text-sm text-white mb-2">
-                        <span className="text-amber-400 mr-2">Câu {idx + 1}:</span>
-                        {q.content}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-slate-300 mb-3 pl-2">
-                        <div className={q.correct_option === 'A' ? 'text-emerald-400 font-bold' : ''}>A. {q.option_a}</div>
-                        <div className={q.correct_option === 'B' ? 'text-emerald-400 font-bold' : ''}>B. {q.option_b}</div>
-                        <div className={q.correct_option === 'C' ? 'text-emerald-400 font-bold' : ''}>C. {q.option_c}</div>
-                        <div className={q.correct_option === 'D' ? 'text-emerald-400 font-bold' : ''}>D. {q.option_d}</div>
-                      </div>
-
-                      <div className="flex items-center gap-2 pt-2 border-t border-slate-700/50">
-                        <span className="text-xs font-bold text-slate-400">Đáp án đúng:</span>
-                        {(['A', 'B', 'C', 'D'] as const).map((opt) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => {
-                              const updated = [...parsedQuestions];
-                              updated[idx].correct_option = opt;
-                              setParsedQuestions(updated);
-                            }}
-                            className={`w-9 h-8 rounded-lg font-bold text-xs transition flex items-center justify-center ${
-                              q.correct_option === opt
-                                ? 'bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-300'
-                                : 'bg-slate-700/70 text-slate-300 hover:bg-slate-700 hover:text-white'
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex justify-between items-center gap-3 pt-3 mt-3 border-t border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setBulkStep('input')}
-                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
-                  >
-                    Quay Lại Sửa Văn Bản
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveBulkQuestions}
-                    disabled={actionLoading || parsedQuestions.length === 0}
-                    className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-emerald-600/30"
-                  >
-                    <FiCheck />
-                    <span>{actionLoading ? 'Đang lưu...' : `Lưu Toàn Bộ ${parsedQuestions.length} Câu Hỏi`}</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="flex justify-between items-center gap-3 pt-3 mt-3 border-t border-slate-800">
+              <Button type="button" variant="secondary" size="sm" onClick={() => setBulkStep('input')}>
+                Quay Lại Sửa Văn Bản
+              </Button>
+              <Button type="button" size="sm" onClick={handleSaveBulkQuestions} disabled={actionLoading || parsedQuestions.length === 0}>
+                <FiCheck />
+                <span>{actionLoading ? 'Đang lưu...' : `Lưu Toàn Bộ ${parsedQuestions.length} Câu Hỏi`}</span>
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }
