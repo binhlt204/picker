@@ -171,7 +171,11 @@ router.put('/questions/:id', (req: Request, res: Response) => {
 router.delete('/questions/:id', (req: Request, res: Response) => {
   try {
     const db = getDB();
-    const result = db.prepare('DELETE FROM questions WHERE id = ?').run(req.params.id);
+    // Câu hỏi là dữ liệu chính: xóa luôn các bài làm đã ghi nhận cho câu này để không bị chặn bởi khóa ngoại
+    const result = db.transaction((id: string) => {
+      db.prepare('DELETE FROM session_answers WHERE question_id = ?').run(id);
+      return db.prepare('DELETE FROM questions WHERE id = ?').run(id);
+    })(String(req.params.id));
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Question not found' });
     }

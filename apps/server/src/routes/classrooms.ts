@@ -70,7 +70,12 @@ router.put('/:id', (req: Request, res: Response) => {
 router.delete('/:id', (req: Request, res: Response) => {
   try {
     const db = getDB();
-    const result = db.prepare('DELETE FROM classrooms WHERE id = ?').run(req.params.id);
+    // Lớp học là dữ liệu chính: xóa luôn các phiên thi (bài làm xóa theo CASCADE) và bài làm của HS trong lớp
+    const result = db.transaction((id: string) => {
+      db.prepare('DELETE FROM session_answers WHERE student_id IN (SELECT id FROM students WHERE classroom_id = ?)').run(id);
+      db.prepare('DELETE FROM exam_sessions WHERE classroom_id = ?').run(id);
+      return db.prepare('DELETE FROM classrooms WHERE id = ?').run(id);
+    })(String(req.params.id));
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Classroom not found' });
     }

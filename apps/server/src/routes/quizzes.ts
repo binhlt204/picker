@@ -78,7 +78,12 @@ router.put('/:id', (req: Request, res: Response) => {
 router.delete('/:id', (req: Request, res: Response) => {
   try {
     const db = getDB();
-    const result = db.prepare('DELETE FROM quizzes WHERE id = ?').run(req.params.id);
+    // Xóa bộ đề: xóa luôn các phiên thi dùng đề này và bài làm của các câu hỏi trong đề
+    const result = db.transaction((id: string) => {
+      db.prepare('DELETE FROM session_answers WHERE question_id IN (SELECT id FROM questions WHERE quiz_id = ?)').run(id);
+      db.prepare('DELETE FROM exam_sessions WHERE quiz_id = ?').run(id);
+      return db.prepare('DELETE FROM quizzes WHERE id = ?').run(id);
+    })(String(req.params.id));
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Quiz not found' });
     }

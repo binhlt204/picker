@@ -177,7 +177,11 @@ router.put('/students/:id', (req: Request, res: Response) => {
 router.delete('/students/:id', (req: Request, res: Response) => {
   try {
     const db = getDB();
-    const result = db.prepare('DELETE FROM students WHERE id = ?').run(req.params.id);
+    // Học sinh là dữ liệu chính: xóa luôn các bài làm của học sinh này để không bị chặn bởi khóa ngoại
+    const result = db.transaction((id: string) => {
+      db.prepare('DELETE FROM session_answers WHERE student_id = ?').run(id);
+      return db.prepare('DELETE FROM students WHERE id = ?').run(id);
+    })(String(req.params.id));
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
