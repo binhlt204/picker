@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
-import 'screens/scanner_screen.dart';
+import 'screens/question_controller_screen.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -56,11 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Trên máy thật iOS hoặc Android, dùng IP WiFi máy chủ.
-    // Trên simulator/web dùng localhost hoặc IP LAN.
     String defaultUrl = 'http://192.168.1.11:3001';
     if (!kIsWeb && Platform.isAndroid) {
-      // Mặc định LAN IP giúp chạy tốt cả máy thật lẫn giả lập
       defaultUrl = 'http://192.168.1.11:3001';
     }
     _urlController = TextEditingController(text: defaultUrl);
@@ -130,6 +127,21 @@ class _HomeScreenState extends State<HomeScreen> {
             color: isSelected ? Colors.white : Colors.white70,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
+        ),
+      ),
+    );
+  }
+
+  void _openSession(dynamic s) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuestionControllerScreen(
+          serverUrl: _urlController.text.trim(),
+          sessionId: s['id'],
+          sessionTitle: s['quiz_title'] ?? '',
+          className: s['classroom_name'] ?? '',
+          cameras: cameras,
         ),
       ),
     );
@@ -279,6 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   margin: const EdgeInsets.only(bottom: 12),
                                   child: ListTile(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    onTap: () => _openSession(s),
                                     title: Text(
                                       s['quiz_title'] ?? 'Đề thi',
                                       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -293,22 +306,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
-                                      icon: const Icon(Icons.camera_alt, size: 16),
-                                      label: const Text('Quét'),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => ScannerScreen(
-                                              serverUrl: _urlController.text.trim(),
-                                              sessionId: s['id'],
-                                              sessionTitle: s['quiz_title'] ?? '',
-                                              className: s['classroom_name'] ?? '',
-                                              cameras: cameras,
-                                            ),
-                                          ),
-                                        );
-                                      },
+                                      icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                                      label: const Text('Bắt đầu'),
+                                      onPressed: () => _openSession(s),
                                     ),
                                   ),
                                 );

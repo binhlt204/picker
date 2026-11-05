@@ -240,6 +240,11 @@ router.get('/:id/current-question', (req: Request, res: Response) => {
       ? (db.prepare('SELECT COUNT(*) as count FROM students WHERE classroom_id = ?').get(examSession.classroom_id) as any)?.count || 0
       : 0;
 
+    const distribution = { A: 0, B: 0, C: 0, D: 0 };
+    Object.values(session.answers).forEach((ans: any) => {
+      if (ans in distribution) distribution[ans as keyof typeof distribution]++;
+    });
+
     res.json({
       questionId: question.id,
       questionOrder: question.question_order,
@@ -248,10 +253,13 @@ router.get('/:id/current-question', (req: Request, res: Response) => {
       optionB: question.option_b,
       optionC: question.option_c,
       optionD: question.option_d,
+      correctOption: question.correct_option,
       timeLimit: session.timeLimit,
       totalQuestions: totalQ?.count || 0,
       isLocked: session.isLocked,
       submittedCardIds: Object.keys(session.answers).map(Number),
+      answerDistribution: distribution,
+      answers: session.answers,
       totalStudents,
     });
   } catch (error: any) {

@@ -9,6 +9,7 @@ class SocketService {
     String sessionId, {
     Function(Map<String, dynamic>)? onQuestionStarted,
     Function(Map<String, dynamic>)? onQuestionLocked,
+    Function(Map<String, dynamic>)? onStudentsUpdated,
     Function()? onSessionEnded,
     Function(bool)? onConnectionChange,
   }) {
@@ -31,6 +32,12 @@ class SocketService {
     _socket?.on('question_started', (data) {
       if (data is Map<String, dynamic>) {
         onQuestionStarted?.call(data);
+      }
+    });
+
+    _socket?.on('update_submitted_students', (data) {
+      if (data is Map<String, dynamic>) {
+        onStudentsUpdated?.call(data);
       }
     });
 
@@ -59,11 +66,11 @@ class SocketService {
     _socket?.emit('lock_question', {'sessionId': sessionId});
   }
 
-  void nextQuestion(String sessionId, String questionId, int timeLimit) {
+  void nextQuestion(String sessionId, String questionId, {int? timeLimit}) {
     _socket?.emit('next_question', {
       'sessionId': sessionId,
       'questionId': questionId,
-      'timeLimit': timeLimit,
+      'timeLimit': timeLimit ?? 30,
     });
   }
 

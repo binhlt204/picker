@@ -142,13 +142,21 @@ export function setupSocketHandlers(io: Server) {
           optionB: question.option_b,
           optionC: question.option_c,
           optionD: question.option_d,
+          correctOption: question.correct_option,
           timeLimit: session.timeLimit,
           totalQuestions: totalQ?.count || 0,
+        });
+
+        const dist = { A: 0, B: 0, C: 0, D: 0 };
+        Object.values(session.answers).forEach((ans) => {
+          if (ans in dist) dist[ans as keyof typeof dist]++;
         });
 
         socket.emit(SOCKET_EVENTS.UPDATE_SUBMITTED_STUDENTS, {
           submittedCardIds: Object.keys(session.answers).map(Number),
           totalStudents,
+          answerDistribution: dist,
+          answers: session.answers,
         });
 
         if (session.isLocked) {
@@ -183,6 +191,7 @@ export function setupSocketHandlers(io: Server) {
           optionB: question.option_b,
           optionC: question.option_c,
           optionD: question.option_d,
+          correctOption: question.correct_option,
           timeLimit: session.timeLimit,
           totalQuestions: totalQ?.count || 0,
         });
@@ -192,9 +201,16 @@ export function setupSocketHandlers(io: Server) {
           ? (db.prepare('SELECT COUNT(*) as count FROM students WHERE classroom_id = ?').get(examSession.classroom_id) as any)?.count || 0
           : 0;
 
+        const dist = { A: 0, B: 0, C: 0, D: 0 };
+        Object.values(session.answers).forEach((ans) => {
+          if (ans in dist) dist[ans as keyof typeof dist]++;
+        });
+
         socket.emit(SOCKET_EVENTS.UPDATE_SUBMITTED_STUDENTS, {
           submittedCardIds: Object.keys(session.answers).map(Number),
           totalStudents,
+          answerDistribution: dist,
+          answers: session.answers,
         });
       }
     });
