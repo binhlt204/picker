@@ -252,6 +252,9 @@ export function setupSocketHandlers(io: Server) {
         optionB: question.option_b,
         optionC: question.option_c,
         optionD: question.option_d,
+        // Gửi kèm đáp án đúng để điện thoại GV biết ngay từ đầu.
+        // Máy chiếu chỉ hiển thị đáp án sau khi khóa (dùng dữ liệu question_locked).
+        correctOption: question.correct_option,
         timeLimit: session.timeLimit,
         totalQuestions: totalQ?.count || 0,
       });

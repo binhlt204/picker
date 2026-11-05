@@ -64,6 +64,7 @@ export interface QuestionStartedPayload {
   optionB: string;
   optionC: string;
   optionD: string;
+  correctOption?: 'A' | 'B' | 'C' | 'D'; // chỉ dùng cho điện thoại GV
   timeLimit: number;
   totalQuestions: number;
 }

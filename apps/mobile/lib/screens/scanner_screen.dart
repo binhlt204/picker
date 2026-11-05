@@ -268,6 +268,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     final questionOrder = _currentQuestion?['questionOrder'] ?? '?';
     final totalQ = _currentQuestion?['totalQuestions'] ?? '?';
     final questionContent = _currentQuestion?['content'] ?? 'Chờ giáo viên bắt đầu câu hỏi...';
+    final String? correctOption = _currentQuestion?['correctOption']?.toString().toUpperCase();
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -336,15 +337,40 @@ class _ScannerScreenState extends State<ScannerScreen> {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            questionContent,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  questionContent,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // Đáp án đúng hiển thị ngay từ đầu cho GV
+                              if (correctOption != null) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'ĐÁP ÁN: $correctOption',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),

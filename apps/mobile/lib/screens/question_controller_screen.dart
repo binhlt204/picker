@@ -35,7 +35,7 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
 
   int _totalStudents = 0;
   bool _isLocked = false;
-  bool _showCorrect = false;
+  bool _showCorrect = true; // GV thấy đáp án đúng ngay từ đầu, không cần đợi hết giờ
 
   // Đáp án & thống kê cho câu hỏi hiện tại
   Map<String, int> _distribution = {'A': 0, 'B': 0, 'C': 0, 'D': 0};
@@ -68,9 +68,10 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
             final idx = _questions.indexWhere((q) => q['question_order'] == qOrder);
             if (idx != -1) _currentIndex = idx;
           }
-          if (data['correctOption'] != null) {
-            _correctOption = data['correctOption'];
-          }
+          // Đáp án đúng: ưu tiên server gửi, nếu thiếu thì lấy từ danh sách câu hỏi đã tải
+          _correctOption = data['correctOption'] ??
+              _currentQuestion?['correct_option'] ??
+              _correctOption;
           _distribution = {'A': 0, 'B': 0, 'C': 0, 'D': 0};
           _answers.clear();
         });
@@ -401,6 +402,11 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
                       ),
                     ),
 
+                    if (_showCorrect && q != null) ...[
+                      const SizedBox(height: 12),
+                      _buildCorrectChip(_correctOption),
+                    ],
+
                     const SizedBox(height: 24),
 
                     // 4 LỰA CHỌN ĐÁP ÁN: A, B, C, D
@@ -447,7 +453,7 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
                       });
                     },
                     child: Text(
-                      _showCorrect ? 'Hide Correct' : 'Show Correct',
+                      _showCorrect ? 'Ẩn đáp án' : 'Hiện đáp án',
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -520,6 +526,26 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Nhãn "Đáp án đúng: X" hiển thị ngay dưới nội dung câu hỏi
+  Widget _buildCorrectChip(String option) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF10B981).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF10B981)),
+      ),
+      child: Text(
+        '✓ Đáp án đúng: ${option.toUpperCase()}',
+        style: const TextStyle(
+          color: Color(0xFF047857),
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
         ),
       ),
     );
