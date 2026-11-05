@@ -32,9 +32,30 @@ jobs:
           flutter pub get
 
       - name: Build iOS (No Codesign)
+        id: build
         run: |
           cd apps/mobile
-          flutter build ios --release --no-codesign
+          set -o pipefail
+          flutter build ios --release --no-codesign 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      # Khi build lỗi: đưa các dòng lỗi + phần cuối log vào Annotations và Job Summary
+      # để đọc nhanh trên giao diện/API mà không cần tải log đầy đủ.
+      - name: Report iOS build errors
+        if: failure() && steps.build.outcome == 'failure'
+        run: |
+          python3 - <<'PY'
+          import os, re
+          tmp = os.environ["RUNNER_TEMP"]
+          lines = open(os.path.join(tmp, "build.log"), errors="replace").read().splitlines()
+          pat = re.compile(r"error|fail|not installed|requires|exception|unable|cannot|could not|xcode|deployment target", re.I)
+          hits = [l for l in lines if pat.search(l)][:60]
+          text = "=== DONG LOI/CANH BAO ===\n" + "\n".join(hits) + "\n\n=== 60 DONG CUOI ===\n" + "\n".join(lines[-60:])
+          text = text[-30000:]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("## iOS build failed\n```\n" + text + "\n```\n")
+          enc = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+          print("::error title=iOS build log::" + enc)
+          PY
 
       - name: Package into IPA
         run: |
