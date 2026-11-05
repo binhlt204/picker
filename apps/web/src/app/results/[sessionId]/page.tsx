@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, downloadFile } from '@/lib/api';
 import {
   FiAward,
   FiDownload,
@@ -87,20 +87,18 @@ export default function ResultsPage() {
 
         {/* Export Buttons */}
         <div className="flex items-center gap-3 self-start sm:self-auto">
-          <a
-            href={`http://localhost:3001/api/sessions/${sessionId}/results/export?format=csv`}
-            download
+          <button
+            onClick={() => downloadFile(`/sessions/${sessionId}/results/export?format=csv`, 'ket-qua.csv').catch((e) => alert(e.message))}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition shadow-sm"
           >
             <FiDownload /> Xuất CSV
-          </a>
-          <a
-            href={`http://localhost:3001/api/sessions/${sessionId}/results/export?format=xlsx`}
-            download
+          </button>
+          <button
+            onClick={() => downloadFile(`/sessions/${sessionId}/results/export?format=xlsx`, 'ket-qua.xlsx').catch((e) => alert(e.message))}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/25 transition active:scale-95"
           >
             <FiDownload /> Xuất Excel (.xlsx)
-          </a>
+          </button>
         </div>
       </div>
 

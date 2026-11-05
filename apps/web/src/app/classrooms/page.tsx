@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { api, getApiBaseUrl } from '@/lib/api';
+import { api, downloadFile } from '@/lib/api';
 import {
   FiUsers,
   FiPlus,
@@ -53,6 +53,7 @@ export default function ClassroomsPage() {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [selectedClass, setSelectedClass] = useState<Classroom | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingCards, setDownloadingCards] = useState(false);
 
   // Modals state
   const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
@@ -229,17 +230,24 @@ export default function ClassroomsPage() {
 
         <div className="flex items-center gap-3">
           {selectedClass && (
-            <a
-              href={`${getApiBaseUrl()}/api/classrooms/${selectedClass.id}/cards/pdf`}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              disabled={downloadingCards}
+              onClick={async () => {
+                setDownloadingCards(true);
+                try {
+                  await downloadFile(`/classrooms/${selectedClass.id}/cards/pdf`, `the_trac_nghiem_${selectedClass.name}.pdf`);
+                } catch (err: any) {
+                  alert(err?.message || 'Tải thẻ in thất bại');
+                } finally {
+                  setDownloadingCards(false);
+                }
+              }}
               title={`Tải PDF thẻ in theo danh sách học sinh lớp ${selectedClass.name}`}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-60 text-slate-200 border border-slate-700 text-xs font-bold transition shadow-sm"
             >
               <FiDownload className="text-blue-400" />
-              <span>Tải Thẻ In Lớp {selectedClass.name}</span>
-            </a>
+              <span>{downloadingCards ? 'Đang tạo PDF...' : `Tải Thẻ In Lớp ${selectedClass.name}`}</span>
+            </button>
           )}
 
           <button
