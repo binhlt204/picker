@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
 import { requireAuth } from '../auth/middleware';
 import http from 'http';
-import { getOrCreateActiveSession, submitAnswers } from '../socket/sessionHandler';
+import { getOrCreateActiveSession, submitAnswers, getTimerStateForSession, loadTimerSettings } from '../socket/sessionHandler';
 
 const router = Router();
 
@@ -63,6 +63,7 @@ router.get('/:id', (req: Request, res: Response) => {
 
     res.json({
       ...session,
+      timer_settings: loadTimerSettings(session.id),
       students,
       questions,
     });
@@ -255,7 +256,9 @@ router.get('/:id/current-question', (req: Request, res: Response) => {
       optionC: question.option_c,
       optionD: question.option_d,
       correctOption: question.correct_option,
-      timeLimit: session.timeLimit,
+      // Đồng hồ chung do server giữ: timeLimit (giây | null), endsAt (ms | null), serverNow (ms)
+      ...getTimerStateForSession(req.params.id as string),
+      timerSettings: loadTimerSettings(req.params.id as string),
       totalQuestions: totalQ?.count || 0,
       isLocked: session.isLocked,
       submittedCardIds: Object.keys(session.answers).map(Number),

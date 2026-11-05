@@ -56,7 +56,7 @@ export interface ScanRecord {
   answer: 'A' | 'B' | 'C' | 'D';
 }
 
-export interface QuestionStartedPayload {
+export interface QuestionStartedPayload extends TimerState {
   questionId: string;
   questionOrder: number;
   content: string;
@@ -65,8 +65,26 @@ export interface QuestionStartedPayload {
   optionC: string;
   optionD: string;
   correctOption?: 'A' | 'B' | 'C' | 'D'; // chỉ dùng cho điện thoại GV
-  timeLimit: number;
   totalQuestions: number;
+}
+
+/** Cài đặt hẹn giờ của 1 phiên thi. */
+export interface TimerSettings {
+  timerEnabled: boolean; // false = không giới hạn thời gian cho cả phiên
+  timeLimitAll: number | null; // giây, áp dụng cho tất cả câu; null = dùng thời gian riêng từng câu
+  questionTimes: Record<string, number>; // questionId -> giây (0 = không giới hạn cho câu đó)
+}
+
+/** Trạng thái đồng hồ của câu đang chạy (server là nguồn thời gian chuẩn). */
+export interface TimerState {
+  timeLimit: number | null; // tổng số giây của câu hiện tại; null = không giới hạn
+  endsAt: number | null; // thời điểm hết giờ (ms, theo đồng hồ server); null = không đếm giờ
+  serverNow: number; // giờ server lúc gửi (ms) để client bù chênh lệch đồng hồ
+}
+
+export interface TimerSettingsPayload {
+  settings: TimerSettings;
+  current: (TimerState & { questionId: string }) | null;
 }
 
 export interface SubmitScannedBatchPayload {

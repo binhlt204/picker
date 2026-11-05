@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import '../services/socket_service.dart';
+import '../utils/server_timer.dart';
 
 class ScannerScreen extends StatefulWidget {
   final String serverUrl;
@@ -36,8 +37,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
   bool _isLocked = false;
   int _scannedCount = 0;
   final Set<int> _scannedCardIds = {};
+  // Đồng hồ đồng bộ theo server (cùng số giây với máy chiếu); null = không giới hạn thời gian
+  final ServerTimer _timer = ServerTimer();
   Timer? _countdownTimer;
-  int _secondsLeft = 0;
+  int? _secondsLeft;
 
   bool _isScanningLoopActive = false;
   bool _isProcessingFrame = false;
@@ -61,7 +64,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
         setState(() {
           _currentQuestion = data;
           _isLocked = data['isLocked'] ?? false;
-          _secondsLeft = data['timeLimit'] ?? 30;
+          _timer.apply(data);
+          _secondsLeft = _timer.secondsLeft();
           if (data['submittedCardIds'] != null) {
             final List<dynamic> list = data['submittedCardIds'];
             for (var id in list) {
@@ -70,9 +74,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             _scannedCount = _scannedCardIds.length;
           }
         });
-        if (!_isLocked && _secondsLeft > 0) {
-          _startTimer();
-        }
+        _startTimer();
       }
     } catch (e) {
       debugPrint("Error fetching current question: $e");
@@ -191,7 +193,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
           _isLocked = false;
           _scannedCardIds.clear();
           _scannedCount = 0;
-          _secondsLeft = data['timeLimit'] ?? 30;
+          _timer.apply(data);
+          _secondsLeft = _timer.secondsLeft();
           _lastDetectedInfo = '';
         });
         _startTimer();
@@ -200,9 +203,21 @@ class _ScannerScreenState extends State<ScannerScreen> {
         if (!mounted) return;
         setState(() {
           _isLocked = true;
+          _timer.stop();
+          _secondsLeft = null;
           _lastDetectedInfo = '🔒 Câu hỏi đã khóa!';
         });
-        _countdownTimer?.cancel();
+      },
+      // Cài đặt thời gian đổi (từ máy chiếu hoặc màn điều khiển) -> cập nhật đồng hồ câu đang chạy
+      onTimerSettings: (data) {
+        if (!mounted) return;
+        final current = data['current'];
+        if (current is Map) {
+          setState(() {
+            _timer.apply(current);
+            _secondsLeft = _timer.secondsLeft();
+          });
+        }
       },
       onSessionEnded: () {
         if (!mounted) return;
@@ -214,23 +229,17 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
   }
 
+  /// Cập nhật số giây còn lại theo đồng hồ server. Hết giờ thì ngừng quét (server cũng tự khóa câu).
   void _startTimer() {
     _countdownTimer?.cancel();
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_secondsLeft <= 1) {
-        timer.cancel();
-        if (mounted) {
-          setState(() {
-            _secondsLeft = 0;
-            _isLocked = true;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _secondsLeft--;
-          });
-        }
+    _countdownTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (!mounted) return;
+      final left = _timer.secondsLeft();
+      if (left != _secondsLeft) {
+        setState(() {
+          _secondsLeft = left;
+          if (left == 0) _isLocked = true;
+        });
       }
     });
   }
@@ -265,6 +274,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool timeWarning = _secondsLeft != null && _secondsLeft! <= 5;
+    final String timeLabel = _isLocked ? 'Khóa' : (_secondsLeft == null ? '∞' : '${_secondsLeft}s');
     final questionOrder = _currentQuestion?['questionOrder'] ?? '?';
     final totalQ = _currentQuestion?['totalQuestions'] ?? '?';
     final questionContent = _currentQuestion?['content'] ?? 'Chờ giáo viên bắt đầu câu hỏi...';
@@ -380,12 +391,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _secondsLeft <= 5
+                        color: timeWarning
                             ? Colors.red.withValues(alpha: 0.3)
                             : Colors.blue.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _secondsLeft <= 5 ? Colors.redAccent : Colors.blueAccent,
+                          color: timeWarning ? Colors.redAccent : Colors.blueAccent,
                         ),
                       ),
                       child: Row(
@@ -393,13 +404,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           Icon(
                             Icons.timer_outlined,
                             size: 16,
-                            color: _secondsLeft <= 5 ? Colors.redAccent : Colors.blueAccent,
+                            color: timeWarning ? Colors.redAccent : Colors.blueAccent,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${_secondsLeft}s',
+                            timeLabel,
                             style: TextStyle(
-                              color: _secondsLeft <= 5 ? Colors.redAccent : Colors.blueAccent,
+                              color: timeWarning ? Colors.redAccent : Colors.blueAccent,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

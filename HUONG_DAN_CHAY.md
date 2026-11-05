@@ -214,11 +214,27 @@ Dùng thư viện **react-admin** để quản lý tập trung: **Tài khoản**
 
 ### 🖥️ Trên laptop (nối máy chiếu)
 1. Vào **Phiên thi** → bấm **Máy chiếu** ở phiên vừa tạo → nhấn **F11** để phóng toàn màn hình.
-2. **Giữ tab này mở suốt buổi**, vì tab này tự khoá câu hỏi khi hết giờ.
+2. Đồng hồ do **server** giữ: máy chiếu và điện thoại luôn hiện **cùng số giây**, và hết giờ server **tự khoá câu** (kể cả khi tạm đóng tab máy chiếu).
 
 ### 📱 Trên điện thoại
 1. Mở app **Pickball Scanner** → nhập `http://<IP-laptop>:3001` → bấm **Kết nối**.
 2. Chọn phiên kiểm tra → bấm **Bắt đầu**.
+
+### ⏱️ Cài đặt thời gian (máy chiếu hoặc điện thoại)
+- **Máy chiếu:** bấm nút **Thời gian** (góc trên, có cả ở màn chờ trước khi bắt đầu).
+- **Điện thoại:** chạm vào **chip đồng hồ** ở thanh trên cùng (ví dụ `⏱ 23s ⚙`).
+- Thay đổi ở máy nào cũng **đồng bộ ngay** sang máy còn lại.
+
+| Tùy chọn | Ý nghĩa |
+|---|---|
+| **Đếm giờ cho câu hỏi** (bật/tắt) | Tắt = mọi câu **không giới hạn thời gian**, GV tự bấm **Khóa câu**. Bật = hết giờ tự khoá |
+| **Thời gian cho tất cả câu** | Áp dụng 1 thời gian cho cả phiên (có nút nhanh 15/30/45/60s). Để trống/“Dùng thời gian từng câu” = mỗi câu dùng thời gian đã soạn trong đề |
+| **Thời gian từng câu** | Đặt riêng cho 1 câu, ưu tiên hơn thời gian chung. Nhập **0** = câu đó không giới hạn. Để trống/“Mặc định” = theo thời gian chung |
+
+- Thời gian hợp lệ: **5–600 giây** (hoặc 0 = không giới hạn).
+- Sửa thời gian của **câu đang chạy** sẽ **đếm lại câu đó từ đầu** với thời gian mới.
+- Cài đặt được lưu theo **từng phiên thi**, không làm thay đổi thời gian gốc trong ngân hàng đề.
+- Trên điện thoại, nếu phiên chưa bắt đầu sẽ có nút **Bắt đầu câu …**.
 
 ### 🔁 Vòng lặp cho mỗi câu hỏi
 
@@ -228,7 +244,7 @@ Dùng thư viện **react-admin** để quản lý tập trung: **Tài khoản**
 | 2 | HS | Xoay thẻ sao cho **chữ cái mình chọn (A/B/C/D) nằm ở cạnh trên**, giơ thẻ trước ngực, không che mã |
 | 3 | GV | Trên điện thoại mở **Camera quét**, lia chậm qua cả lớp |
 | 4 | HS | Nhìn máy chiếu: ô số thẻ của mình **sáng xanh ✓** là đã được ghi nhận (máy chiếu không lộ đáp án) |
-| 5 | Tự động / GV | Hết giờ thì câu hỏi tự khoá. Muốn khoá sớm thì bấm **Khóa câu**. Màn hình hiện đáp án đúng và biểu đồ % |
+| 5 | Tự động / GV | Hết giờ thì server tự khoá câu (nếu đang tắt đếm giờ thì GV tự khoá). Muốn khoá sớm thì bấm **Khóa câu**. Màn hình hiện đáp án đúng và biểu đồ % |
 | 6 | GV | Chữa bài nhanh, rồi bấm **Câu tiếp theo** |
 
 ### 🏁 Kết thúc
@@ -250,7 +266,8 @@ Trong màn hình Camera trên điện thoại có nút **Quét Test**: mỗi l�
 | Camera quay nhưng không nhận thẻ nào | Chưa chạy Detector (Terminal 2) | Chạy `python scripts/detector_service.py` |
 | Detector báo lỗi `cv2.aruco` | Thiếu thư viện OpenCV | `pip install opencv-contrib-python` |
 | Nhận sai đáp án | Thẻ bị nghiêng, bị che hoặc thiếu sáng | Giơ thẻ thẳng, không che mã, đứng gần hơn |
-| Hết giờ mà câu hỏi không khoá | Đã đóng tab máy chiếu | Mở lại tab máy chiếu, hoặc bấm **Khóa câu** trên điện thoại |
+| Hết giờ mà câu hỏi không khoá | Đang **tắt đếm giờ** hoặc câu đặt **0 = không giới hạn** | Bấm **Khóa câu**, hoặc bật lại đếm giờ trong **Cài đặt thời gian** |
+| Đồng hồ điện thoại khác máy chiếu | App điện thoại bản cũ (trước khi có đồng bộ) | Cài lại app bản mới (Phần C/C2) |
 | Thẻ quét được nhưng ô không sáng | Số thẻ chưa gán cho học sinh nào trong lớp | Kiểm tra danh sách lớp trên Web |
 | Không đăng nhập được: *"Tài khoản đang chờ quản trị viên duyệt"* | Tài khoản mới chưa được duyệt | Admin vào **Quản trị → Tài khoản** bấm **Duyệt** |
 | Quên mật khẩu mà không nhận email | Server chưa cấu hình SMTP | Lấy link trong terminal của server, hoặc admin đặt mật khẩu mới trong **Quản trị → Tài khoản** |

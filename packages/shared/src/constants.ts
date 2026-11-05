@@ -19,6 +19,10 @@ export const SOCKET_EVENTS = {
   SUBMIT_SCANNED_BATCH: 'submit_scanned_batch',
   UPDATE_SUBMITTED_STUDENTS: 'update_submitted_students',
 
+  // Hẹn giờ (đồng bộ máy chiếu + điện thoại; server giữ đồng hồ và tự khóa khi hết giờ)
+  UPDATE_TIMER_SETTINGS: 'update_timer_settings', // Client -> Server: đổi cài đặt hẹn giờ
+  TIMER_SETTINGS: 'timer_settings', // Server -> All: cài đặt mới + trạng thái đồng hồ câu hiện tại
+
   // Errors
   ERROR: 'error',
 } as const;

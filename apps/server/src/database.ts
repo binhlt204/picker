@@ -106,5 +106,20 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_answers_question ON session_answers(question_id);
   `);
 
+  // Migration: cài đặt hẹn giờ theo phiên thi (thêm cột nếu DB cũ chưa có)
+  //  - timer_enabled: 1 = có đếm giờ, 0 = không giới hạn thời gian cho cả phiên
+  //  - time_limit_all: thời gian (giây) áp dụng cho tất cả câu; NULL = dùng thời gian riêng của từng câu
+  //  - question_times: JSON {questionId: giây} thời gian riêng từng câu trong phiên (0 = không giới hạn)
+  addColumnIfMissing('exam_sessions', 'timer_enabled', 'INTEGER NOT NULL DEFAULT 1');
+  addColumnIfMissing('exam_sessions', 'time_limit_all', 'INTEGER');
+  addColumnIfMissing('exam_sessions', 'question_times', 'TEXT');
+
   console.log('✅ Database initialized at:', DB_PATH);
+}
+
+function addColumnIfMissing(table: string, column: string, definition: string) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
 }

@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import '../services/socket_service.dart';
+import '../utils/server_timer.dart';
+import '../widgets/timer_settings_sheet.dart';
 import 'scanner_screen.dart';
 
 class QuestionControllerScreen extends StatefulWidget {
@@ -42,17 +45,35 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
   Map<int, String> _answers = {}; // cardId -> answer
   String _correctOption = 'A';
 
+  // Đồng hồ đồng bộ theo server + cài đặt hẹn giờ của phiên
+  final ServerTimer _timer = ServerTimer();
+  final ValueNotifier<TimerSettingsData> _timerSettings = ValueNotifier(TimerSettingsData());
+  Timer? _ticker;
+  int? _secondsLeft;
+  bool _started = false; // phiên đã có câu đang chạy chưa (false = GV chưa bấm Bắt đầu)
+
   @override
   void initState() {
     super.initState();
     _loadSessionDetails();
     _initSocket();
+    _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      final left = _timer.secondsLeft();
+      if (left != _secondsLeft && mounted) setState(() => _secondsLeft = left);
+    });
   }
 
   @override
   void dispose() {
+    _ticker?.cancel();
+    _timerSettings.dispose();
     _socketService.disconnect();
     super.dispose();
+  }
+
+  void _applyTimer(Map<dynamic, dynamic> data) {
+    _timer.apply(data);
+    _secondsLeft = _timer.secondsLeft();
   }
 
   void _initSocket() {
@@ -62,7 +83,9 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
       onQuestionStarted: (data) {
         if (!mounted) return;
         setState(() {
+          _started = true;
           _isLocked = false;
+          _applyTimer(data);
           final qOrder = data['questionOrder'];
           if (qOrder != null && _questions.isNotEmpty) {
             final idx = _questions.indexWhere((q) => q['question_order'] == qOrder);
@@ -101,6 +124,8 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
         if (!mounted) return;
         setState(() {
           _isLocked = true;
+          _timer.stop();
+          _secondsLeft = null;
           if (data['correctOption'] != null) {
             _correctOption = data['correctOption'];
           }
@@ -114,6 +139,16 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
             };
           }
         });
+      },
+      onTimerSettings: (data) {
+        if (!mounted) return;
+        _timerSettings.value = TimerSettingsData.fromJson(data['settings']);
+        final current = data['current'];
+        if (current is Map) setState(() => _applyTimer(current));
+      },
+      onError: (message) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       },
       onSessionEnded: () {
         if (!mounted) return;
@@ -141,6 +176,7 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
         final List<dynamic> qList = data['questions'] ?? [];
         final List<dynamic> stList = data['students'] ?? [];
         final currentOrder = data['current_question_order'] ?? 1;
+        _timerSettings.value = TimerSettingsData.fromJson(data['timer_settings']);
 
         int initIndex = 0;
         if (qList.isNotEmpty) {
@@ -178,8 +214,13 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
       );
       if (res.statusCode == 200 && mounted) {
         final data = jsonDecode(res.body);
+        if (data['timerSettings'] != null) {
+          _timerSettings.value = TimerSettingsData.fromJson(data['timerSettings']);
+        }
         setState(() {
+          _started = true;
           _isLocked = data['isLocked'] ?? false;
+          _applyTimer(data);
           _correctOption = data['correctOption'] ?? _currentQuestion?['correct_option'] ?? 'A';
           if (data['totalStudents'] != null) {
             _totalStudents = data['totalStudents'];
@@ -231,10 +272,66 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
     });
 
     // Phát lệnh chuyển câu hỏi tới server và máy chiếu
-    _socketService.nextQuestion(
-      widget.sessionId,
-      targetQ['id'],
-      timeLimit: targetQ['time_limit'] ?? 30,
+    _socketService.nextQuestion(widget.sessionId, targetQ['id']);
+  }
+
+  void _openTimerSettings() {
+    showTimerSettingsSheet(
+      context: context,
+      settings: _timerSettings,
+      questions: _questions,
+      currentQuestionId: _isLocked ? null : _currentQuestion?['id']?.toString(),
+      onUpdate: ({bool? timerEnabled, bool setAll = false, int? timeLimitAll, String? questionId, int? questionTime}) {
+        _socketService.updateTimerSettings(
+          widget.sessionId,
+          timerEnabled: timerEnabled,
+          setAll: setAll,
+          timeLimitAll: timeLimitAll,
+          questionId: questionId,
+          questionTime: questionTime,
+        );
+      },
+    );
+  }
+
+  /// Chip đồng hồ trên thanh trên cùng: số giây còn lại (đồng bộ máy chiếu) hoặc ∞ khi không giới hạn.
+  Widget _buildTimerChip() {
+    final left = _secondsLeft;
+    final String label;
+    Color color;
+    if (!_started) {
+      label = 'Chưa bắt đầu';
+      color = const Color(0xFF64748B);
+    } else if (_isLocked) {
+      label = 'Đã khóa';
+      color = const Color(0xFF94A3B8);
+    } else if (left == null) {
+      label = '∞';
+      color = const Color(0xFF0284C7);
+    } else {
+      label = '${left}s';
+      color = left <= 5 ? Colors.redAccent : const Color(0xFF0F172A);
+    }
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: _openTimerSettings,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE2E8F0),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.timer_outlined, size: 16, color: color),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14)),
+            const SizedBox(width: 2),
+            const Icon(Icons.settings, size: 14, color: Color(0xFF64748B)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -349,6 +446,11 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
 
                   const Spacer(),
 
+                  // Đồng hồ đồng bộ + mở cài đặt thời gian
+                  _buildTimerChip(),
+
+                  const SizedBox(width: 8),
+
                   // Badge tên lớp (Ví dụ: 8A1)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -436,6 +538,21 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
               ),
             ),
 
+            // Phiên chưa bắt đầu: nút bắt đầu câu đang xem (đồng bộ máy chiếu)
+            if (!_started && q != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () => _changeQuestion(_currentIndex),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: Text('Bắt đầu câu $qOrder', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+
             // 4. ACTION TOGGLES: [Show Correct] ---------- [Show Graph / Khóa câu]
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
@@ -462,7 +579,7 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
                       foregroundColor: _isLocked ? Colors.redAccent : const Color(0xFF0284C7),
                       padding: EdgeInsets.zero,
                     ),
-                    onPressed: _isLocked ? null : _toggleLock,
+                    onPressed: (_isLocked || !_started) ? null : _toggleLock,
                     icon: Icon(_isLocked ? Icons.lock : Icons.lock_open, size: 16),
                     label: Text(
                       _isLocked ? 'Đã khóa' : 'Khóa câu',

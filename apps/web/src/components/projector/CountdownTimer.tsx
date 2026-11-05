@@ -3,12 +3,26 @@
 import React from 'react';
 
 interface CountdownTimerProps {
-  timeLeft: number;
-  total: number;
+  timeLeft: number | null; // null = không giới hạn thời gian
+  total: number | null;
   isWarning: boolean;
 }
 
 export function CountdownTimer({ timeLeft, total, isWarning }: CountdownTimerProps) {
+  // Câu không giới hạn thời gian: hiện biểu tượng vô cực thay cho vòng đếm ngược
+  if (timeLeft === null || total === null) {
+    return (
+      <div className="w-24 h-24 rounded-full border-[6px] border-slate-800 flex flex-col items-center justify-center" title="Không giới hạn thời gian">
+        <span className="text-3xl font-black text-sky-400 leading-none">∞</span>
+        <span className="text-[8px] uppercase font-bold leading-tight text-center text-slate-400 mt-1">
+          Không
+          <br />
+          giới hạn
+        </span>
+      </div>
+    );
+  }
+
   const radius = 34;
   const circumference = 2 * Math.PI * radius;
   const progress = total > 0 ? Math.max(0, Math.min(1, timeLeft / total)) : 0;

@@ -3,12 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSocket } from '@/hooks/useSocket';
-import { useTimer } from '@/hooks/useTimer';
+import { useCountdown } from '@/hooks/useCountdown';
+import { TimerSettingsPanel } from './TimerSettingsPanel';
 import { CountdownTimer } from './CountdownTimer';
 import { AnswerOptions } from './AnswerOptions';
 import { StudentGrid } from './StudentGrid';
 import { ResultChart } from './ResultChart';
-import { FiMaximize, FiMinimize, FiCheckCircle, FiChevronRight, FiLock, FiHome, FiAward } from 'react-icons/fi';
+import { FiMaximize, FiMinimize, FiCheckCircle, FiChevronRight, FiLock, FiHome, FiAward, FiClock } from 'react-icons/fi';
 
 interface QuestionItem {
   id: string;
@@ -38,6 +39,7 @@ interface Props {
 export function ProjectorView({ sessionId, sessionTitle, className, questions, students }: Props) {
   const router = useRouter();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showTimerSettings, setShowTimerSettings] = useState(false);
 
   const {
     isConnected,
@@ -51,7 +53,14 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
     nextQuestion,
     lockQuestion,
     endSession,
+    timer: serverTimer,
+    timerSettings,
+    updateTimerSettings,
+    socketError,
   } = useSocket(sessionId);
+
+  // Số giây còn lại theo đồng hồ server (null = không giới hạn). Hết giờ thì server tự khóa câu.
+  const secondsLeft = useCountdown(serverTimer);
 
   // Set total students from props on mount
   useEffect(() => {
@@ -60,17 +69,6 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
     }
   }, [students.length, setTotalStudents]);
 
-  const timer = useTimer(currentQuestion?.timeLimit || 30, () => {
-    lockQuestion();
-  });
-
-  // Reset timer whenever a new question starts
-  useEffect(() => {
-    if (currentQuestion) {
-      timer.reset(currentQuestion.timeLimit);
-    }
-  }, [currentQuestion]);
-
   const currentIdx = currentQuestion
     ? questions.findIndex((q) => q.id === currentQuestion.questionId)
     : -1;
@@ -78,14 +76,14 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
 
   const handleStart = () => {
     if (questions.length > 0) {
-      nextQuestion(questions[0].id, questions[0].time_limit);
+      nextQuestion(questions[0].id);
     }
   };
 
   const handleNext = () => {
     if (currentIdx !== -1 && currentIdx < questions.length - 1) {
       const next = questions[currentIdx + 1];
-      nextQuestion(next.id, next.time_limit);
+      nextQuestion(next.id);
     }
   };
 
@@ -125,6 +123,14 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
               <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
               <span className="text-slate-300">{isConnected ? 'Sẵn sàng kết nối' : 'Đang kết nối...'}</span>
             </div>
+<button
+              onClick={() => setShowTimerSettings(true)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition text-sm font-semibold"
+              title="Cài đặt thời gian"
+            >
+              <FiClock className="text-lg" />
+              <span className="hidden md:inline">{timerSettings && !timerSettings.timerEnabled ? 'Không giới hạn' : 'Thời gian'}</span>
+            </button>
             <button
               onClick={toggleFullscreen}
               className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition"
@@ -160,6 +166,15 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
         <footer className="text-center text-xs text-slate-500">
           Pickball Realtime Paper Quiz System • Nhấn F11 để bật/tắt toàn màn hình
         </footer>
+      <TimerSettingsPanel
+        open={showTimerSettings}
+        onClose={() => setShowTimerSettings(false)}
+        settings={timerSettings}
+        questions={questions}
+        currentQuestionId={null}
+        error={socketError}
+        onChange={updateTimerSettings}
+      />
       </div>
     );
   }
@@ -183,11 +198,19 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
 
         <div className="flex items-center gap-4">
           <CountdownTimer
-            timeLeft={timer.timeLeft}
-            total={currentQuestion.timeLimit}
-            isWarning={timer.isWarning}
+            timeLeft={isLocked ? 0 : secondsLeft}
+            total={serverTimer.timeLimit}
+            isWarning={secondsLeft !== null && secondsLeft <= 5 && secondsLeft > 0}
           />
 
+          <button
+            onClick={() => setShowTimerSettings(true)}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition text-sm font-semibold"
+            title="Cài đặt thời gian"
+          >
+            <FiClock className="text-lg" />
+            <span className="hidden md:inline">{timerSettings && !timerSettings.timerEnabled ? 'Không giới hạn' : 'Thời gian'}</span>
+          </button>
           <button
             onClick={toggleFullscreen}
             className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition"
@@ -279,6 +302,15 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
           studentsList={students}
         />
       </footer>
+      <TimerSettingsPanel
+        open={showTimerSettings}
+        onClose={() => setShowTimerSettings(false)}
+        settings={timerSettings}
+        questions={questions}
+        currentQuestionId={currentQuestion?.questionId ?? null}
+        error={socketError}
+        onChange={updateTimerSettings}
+      />
     </div>
   );
 }
