@@ -1,0 +1,71 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch: # Cho phép bấm nút "Run workflow" thủ công trên GitHub bất cứ lúc nào
+  push:
+    branches:
+      - binh
+      - main
+      - master
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/build-android.yml'
+
+jobs:
+  build-android:
+    name: Build Android APK Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          flutter pub get
+
+      - name: Build Android APK (release)
+        id: build
+        run: |
+          cd apps/mobile
+          set -o pipefail
+          flutter build apk --release 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      # Khi build lỗi: đưa các dòng lỗi + phần cuối log vào Annotations và Job Summary
+      # để đọc nhanh trên giao diện/API mà không cần tải log đầy đủ (giống workflow iOS).
+      - name: Report Android build errors
+        if: failure() && steps.build.outcome == 'failure'
+        run: |
+          python3 - <<'PY'
+          import os, re
+          tmp = os.environ["RUNNER_TEMP"]
+          lines = open(os.path.join(tmp, "build.log"), errors="replace").read().splitlines()
+          pat = re.compile(r"error|fail|exception|unable|cannot|could not|gradle|sdk", re.I)
+          hits = [l for l in lines if pat.search(l)][:60]
+          text = "=== DONG LOI/CANH BAO ===\n" + "\n".join(hits) + "\n\n=== 60 DONG CUOI ===\n" + "\n".join(lines[-60:])
+          text = text[-30000:]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("## Android build failed\n```\n" + text + "\n```\n")
+          enc = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+          print("::error title=Android build log::" + enc)
+          PY
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pickball-scanner-android-apk
+          path: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
