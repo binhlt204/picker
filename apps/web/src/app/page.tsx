@@ -84,16 +84,13 @@ export default function DashboardPage() {
               <span>Bắt Đầu Phiên Kiểm Tra</span>
             </Link>
 
-            <a
-              href="http://localhost:3001/api/cards/pdf"
-              download
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/classrooms"
               className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 font-bold transition hover:text-white"
             >
               <FiDownload className="text-lg text-blue-400" />
-              <span>Tải File In 50 Thẻ (PDF)</span>
-            </a>
+              <span>In Thẻ Theo Lớp</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -228,7 +225,7 @@ export default function DashboardPage() {
                 </span>
                 <div>
                   <h4 className="text-sm font-bold text-white">In thẻ giấy ArUco</h4>
-                  <p className="text-xs text-slate-400">Tải PDF và in trên giấy bìa A5/A4, ép plastic để dùng cả năm.</p>
+                  <p className="text-xs text-slate-400">Vào Lớp học, tải PDF thẻ theo danh sách lớp và in trên giấy bìa A5, ép plastic để dùng cả năm.</p>
                 </div>
               </div>
 

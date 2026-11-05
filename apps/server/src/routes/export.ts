@@ -124,17 +124,4 @@ router.get('/sessions/:id/results/export', async (req: Request, res: Response) =
   }
 });
 
-// GET /api/cards/pdf - Tải PDF bộ 50 thẻ ArUco
-router.get('/cards/pdf', (req: Request, res: Response) => {
-  const path = require('path');
-  const fs = require('fs');
-  const pdfPath = path.resolve(__dirname, '../../../../scripts/output/aruco_cards_50.pdf');
-
-  if (fs.existsSync(pdfPath)) {
-    res.download(pdfPath, 'the_trac_nghiem_aruco_50_the.pdf');
-  } else {
-    res.status(404).json({ error: 'Chưa sinh file PDF thẻ. Hãy chạy script sinh thẻ trước.' });
-  }
-});
-
 export default router;

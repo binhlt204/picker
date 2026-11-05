@@ -1,8 +1,56 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 const router = Router();
+
+const CARD_SCRIPT = path.resolve(__dirname, '../../../../scripts/generate-aruco-cards.py');
+const PYTHON_BIN = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
+
+// GET /api/classrooms/:id/cards/pdf - Tải PDF thẻ in theo danh sách học sinh của lớp
+router.get('/:id/cards/pdf', (req: Request, res: Response) => {
+  try {
+    const db = getDB();
+    const classroom = db.prepare('SELECT * FROM classrooms WHERE id = ?').get(req.params.id) as any;
+    if (!classroom) {
+      return res.status(404).json({ error: 'Classroom not found' });
+    }
+    const students = db
+      .prepare('SELECT card_id, full_name FROM students WHERE classroom_id = ? ORDER BY card_id ASC')
+      .all(req.params.id) as Array<{ card_id: number; full_name: string }>;
+    if (students.length === 0) {
+      return res.status(400).json({ error: 'Lớp chưa có học sinh nào để in thẻ' });
+    }
+
+    const outPath = path.join(os.tmpdir(), `pickball_cards_${uuidv4()}.pdf`);
+    const child = spawn(PYTHON_BIN, [CARD_SCRIPT, '--input', '-', '--output', outPath], {
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+    });
+
+    let stderr = '';
+    child.stderr.on('data', (d) => (stderr += d.toString()));
+    child.on('error', (err) => {
+      if (!res.headersSent) res.status(500).json({ error: `Không chạy được Python (${PYTHON_BIN}): ${err.message}` });
+    });
+    child.on('close', (code) => {
+      if (code !== 0 || !fs.existsSync(outPath)) {
+        if (!res.headersSent) res.status(500).json({ error: 'Sinh PDF thẻ thất bại', detail: stderr.trim() });
+        return;
+      }
+      res.download(outPath, `the_trac_nghiem_${classroom.name}.pdf`, () => {
+        fs.unlink(outPath, () => {});
+      });
+    });
+
+    child.stdin.end(JSON.stringify({ classroom: classroom.name, students }), 'utf-8');
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // GET /api/classrooms - Danh sách tất cả lớp
 router.get('/', (req: Request, res: Response) => {

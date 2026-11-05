@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, getApiBaseUrl } from '@/lib/api';
 import {
   FiUsers,
   FiPlus,
@@ -228,16 +228,19 @@ export default function ClassroomsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <a
-            href="http://localhost:3001/api/cards/pdf"
-            download
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition shadow-sm"
-          >
-            <FiDownload className="text-blue-400" />
-            <span>Tải PDF Thẻ In</span>
-          </a>
+          {selectedClass && (
+            <a
+              href={`${getApiBaseUrl()}/api/classrooms/${selectedClass.id}/cards/pdf`}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Tải PDF thẻ in theo danh sách học sinh lớp ${selectedClass.name}`}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition shadow-sm"
+            >
+              <FiDownload className="text-blue-400" />
+              <span>Tải Thẻ In Lớp {selectedClass.name}</span>
+            </a>
+          )}
 
           <button
             onClick={() => setIsCreateClassOpen(true)}

@@ -16,8 +16,7 @@ pickball/
 │   └── mobile/          # Mobile Scanner Flutter App (Camera + Socket.io)
 ├── scripts/
 │   ├── seed-database.ts         # Script tạo dữ liệu mẫu (1 lớp, 15 HS, 5 câu hỏi)
-│   ├── generate-aruco-cards.py  # Script sinh file PDF 50 thẻ ArUco in A5
-│   └── output/                  # File PDF thẻ đã sinh sẵn sàng in
+│   └── generate-aruco-cards.py  # Sinh PDF thẻ ArUco theo danh sách lớp (server gọi khi tải thẻ)
 └── docs/
 ```
 
@@ -32,7 +31,7 @@ npm run dev
 ```
 - **Web App:** [http://localhost:3000](http://localhost:3000)
 - **Backend API:** [http://localhost:3001](http://localhost:3001)
-- **Tải PDF 50 Thẻ In:** [http://localhost:3001/api/cards/pdf](http://localhost:3001/api/cards/pdf)
+- **Tải PDF thẻ in theo lớp:** trang **Lớp học** → chọn lớp → **Tải Thẻ In Lớp …** (API: `GET /api/classrooms/:id/cards/pdf`)
 
 ### 2. Chạy Mobile App (Điện thoại quét thẻ)
 ```bash
@@ -41,18 +40,18 @@ flutter run
 ```
 > Nhập IP máy tính trong mạng WiFi nội bộ (ví dụ: `http://192.168.1.100:3001`) để điện thoại kết nối vào cùng server với máy chiếu.
 
-### 3. Sinh lại bộ thẻ in PDF (tùy chọn)
+### 3. Sinh thẻ in PDF bằng dòng lệnh (tùy chọn)
 ```bash
-npm run generate:cards
+python scripts/generate-aruco-cards.py --input lop.json --output the_lop.pdf
 ```
-File PDF xuất ra tại `scripts/output/aruco_cards_50.pdf`.
-In ra giấy khổ A5 (14.8 x 21 cm) hoặc khổ A4, ép plastic để dùng bền lâu.
+`lop.json`: `{ "classroom": "10A1", "students": [{ "card_id": 1, "full_name": "Nguyễn Văn A" }] }`.
+In ra giấy khổ A5 (14.8 x 21 cm), ép plastic để dùng bền lâu.
 
 ---
 
 ## 📋 Luồng Vận Hành Lớp Học
 
-1. **Chuẩn bị:** Phát thẻ #01..#50 cho học sinh theo đúng danh sách lớp trên Web.
+1. **Chuẩn bị:** Tải PDF thẻ của lớp ở trang Lớp học, in và phát cho học sinh theo họ tên in trên thẻ.
 2. **Trình chiếu:** Giáo viên mở [http://localhost:3000](http://localhost:3000) trên Laptop cắm máy chiếu, chọn phiên thi và ấn **Máy Chiếu** (nhấn F11 để Fullscreen).
 3. **Làm bài:** Bấm **BẮT ĐẦU**, câu hỏi và đồng hồ đếm ngược hiển thị trên màn hình lớn.
 4. **Học sinh trả lời:** Xoay cạnh chứa chữ cái muốn chọn (A, B, C hoặc D) lên trên cùng và giơ trước ngực.

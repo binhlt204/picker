@@ -377,9 +377,6 @@ export function renderDashboardHtml(): string {
       <button class="btn btn-secondary" onclick="seedDatabase()" id="btn-seed">
         🌱 Nạp Dữ Liệu Mẫu
       </button>
-      <a href="/api/cards/pdf" download class="btn btn-secondary">
-        📥 PDF 50 Thẻ
-      </a>
       <a href="http://localhost:3000" target="_blank" class="btn btn-primary">
         🚀 Mở Web App (Port 3000)
       </a>

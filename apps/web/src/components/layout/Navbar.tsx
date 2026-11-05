@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FiGrid, FiUsers, FiFileText, FiPlayCircle, FiDownload, FiLayers } from 'react-icons/fi';
+import { FiGrid, FiUsers, FiFileText, FiPlayCircle, FiLayers } from 'react-icons/fi';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -61,20 +61,7 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Right Action: Download ArUco PDF */}
           <div className="flex items-center gap-3">
-            <a
-              href="http://localhost:3001/api/cards/pdf"
-              download
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 text-xs font-semibold transition hover:text-white shadow-sm"
-              title="Tải PDF 50 thẻ ArUco để in ra giấy A5"
-            >
-              <FiDownload className="text-sm text-blue-400" />
-              <span className="hidden sm:inline">Tải PDF 50 Thẻ In</span>
-            </a>
-
             <Link
               href="/sessions"
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-blue-600/25 transition active:scale-95"
