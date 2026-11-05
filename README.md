@@ -31,6 +31,9 @@ npm run dev
 ```
 - **Web App:** [http://localhost:3000](http://localhost:3000)
 - **Backend API:** [http://localhost:3001](http://localhost:3001)
+- **Đăng nhập web:** lần đầu bấm **Đăng ký** ở `/login`, **tài khoản đầu tiên tự thành quản trị viên**; các tài khoản sau cần admin duyệt.
+- **Trang quản trị (react-admin):** [http://localhost:3000/admin](http://localhost:3000/admin), quản lý tài khoản, lớp, học sinh, đề, câu hỏi, phiên thi, bài làm (chỉ admin).
+- Quên mật khẩu: link đặt lại được gửi qua SMTP (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `WEB_URL`); chưa cấu hình thì link in ra terminal của server. Xem chi tiết trong `HUONG_DAN_CHAY.md` (Phần D0).
 - **Tải PDF thẻ in theo lớp:** trang **Lớp học** → chọn lớp → **Tải Thẻ In Lớp …** (API: `GET /api/classrooms/:id/cards/pdf`)
 
 ### 2. Chạy Mobile App (Điện thoại quét thẻ)
