@@ -66,6 +66,64 @@ router.post('/quizzes/:quizId/questions', (req: Request, res: Response) => {
   }
 });
 
+
+// POST /api/quizzes/:quizId/questions/bulk - Thêm nhiều câu hỏi cùng lúc từ Word/Text
+router.post('/quizzes/:quizId/questions/bulk', (req: Request, res: Response) => {
+  try {
+    const { questions } = req.body;
+    const { quizId } = req.params;
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: 'Danh sách câu hỏi không hợp lệ' });
+    }
+
+    const db = getDB();
+    const lastQ = db.prepare(
+      'SELECT MAX(question_order) as max_order FROM questions WHERE quiz_id = ?'
+    ).get(quizId) as any;
+    let nextOrder = (lastQ?.max_order || 0) + 1;
+
+    const insertStmt = db.prepare(`
+      INSERT INTO questions (
+        id, quiz_id, question_order, content,
+        option_a, option_b, option_c, option_d,
+        correct_option, time_limit
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const inserted: any[] = [];
+    const transaction = db.transaction(() => {
+      for (const q of questions) {
+        if (!q.content || !q.option_a || !q.option_b || !q.option_c || !q.option_d) continue;
+        const id = uuidv4();
+        const correct = ['A', 'B', 'C', 'D'].includes(q.correct_option?.toUpperCase())
+          ? q.correct_option.toUpperCase()
+          : 'A';
+        const timeLimit = q.time_limit ? parseInt(q.time_limit, 10) : 30;
+
+        insertStmt.run(
+          id,
+          quizId,
+          nextOrder++,
+          q.content.trim(),
+          q.option_a.trim(),
+          q.option_b.trim(),
+          q.option_c.trim(),
+          q.option_d.trim(),
+          correct,
+          timeLimit
+        );
+        inserted.push({ id, question_order: nextOrder - 1, content: q.content });
+      }
+    });
+
+    transaction();
+    res.status(201).json({ success: true, count: inserted.length, questions: inserted });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // PUT /api/questions/:id - Sửa câu hỏi
 router.put('/questions/:id', (req: Request, res: Response) => {
   try {

@@ -12,6 +12,7 @@ import {
   FiX,
   FiChevronRight,
   FiPlay,
+  FiCheck,
 } from 'react-icons/fi';
 import Link from 'next/link';
 
@@ -53,6 +54,20 @@ export default function QuizzesPage() {
   const [optD, setOptD] = useState('');
   const [correctOpt, setCorrectOpt] = useState<'A' | 'B' | 'C' | 'D'>('A');
   const [timeLimit, setTimeLimit] = useState(30);
+
+  const [isBulkWordOpen, setIsBulkWordOpen] = useState(false);
+  const [bulkWordText, setBulkWordText] = useState('');
+  const [bulkStep, setBulkStep] = useState<'input' | 'preview'>('input');
+  const [parsedQuestions, setParsedQuestions] = useState<Array<{
+    order: number;
+    content: string;
+    option_a: string;
+    option_b: string;
+    option_c: string;
+    option_d: string;
+    correct_option: string;
+    time_limit: number;
+  }>>([]);
 
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -116,6 +131,181 @@ export default function QuizzesPage() {
       }
     } catch (err: any) {
       alert(err.response?.data?.error || 'Lỗi khi xóa đề');
+    }
+  }
+
+  function parseQuestionsFromWord(rawText: string) {
+    // 1. Tách phần câu hỏi và phần bảng đáp án ở cuối (nếu có)
+    const lower = rawText.toLowerCase();
+    const splitMatch = lower.search(/\n\s*(?:đáp\s*án\s*và\s*lời\s*giải|bảng\s*đáp\s*án|đáp\s*án\s*chi\s*tiết|hướng\s*dẫn\s*chấm|đáp\s*án)\b/);
+
+    let qSection = rawText;
+    let ansSection = '';
+    if (splitMatch !== -1) {
+      qSection = rawText.slice(0, splitMatch);
+      ansSection = rawText.slice(splitMatch);
+    }
+
+    // 2. Trích xuất bảng đáp án từ ansSection (hoặc toàn bộ text)
+    const ansMap: Record<number, string> = {};
+    const targetAnsText = ansSection || rawText;
+    const linesAns = targetAnsText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+
+    // Bảng 2 dòng: Câu 1 2 3... / Đáp án C B D...
+    for (let i = 0; i < linesAns.length - 1; i++) {
+      const l1 = linesAns[i];
+      const l2 = linesAns[i + 1];
+      if (/^câu/i.test(l1) && /^đáp\s*án/i.test(l2)) {
+        const nums = l1
+          .replace(/^câu/i, '')
+          .trim()
+          .split(/[\t\s]+/)
+          .map(Number)
+          .filter((n) => !isNaN(n));
+        const anss = l2
+          .replace(/^đáp\s*án/i, '')
+          .trim()
+          .split(/[\t\s]+/)
+          .map((a) => a.toUpperCase())
+          .filter((a) => ['A', 'B', 'C', 'D'].includes(a));
+
+        if (nums.length > 0 && nums.length === anss.length) {
+          for (let k = 0; k < nums.length; k++) {
+            ansMap[nums[k]] = anss[k];
+          }
+        }
+      }
+    }
+
+    // Dạng inline: 1.C 2.B 3.D hoặc 1-C 2-B 3-D hoặc Câu 1: C...
+    if (Object.keys(ansMap).length === 0) {
+      const inlineRegex = /(?:câu\s*)?(\d+)[\s.:\-=]*([A-D])\b/gi;
+      let match;
+      while ((match = inlineRegex.exec(targetAnsText)) !== null) {
+        const qNum = parseInt(match[1], 10);
+        const ans = match[2].toUpperCase();
+        if (qNum > 0 && qNum <= 200) {
+          ansMap[qNum] = ans;
+        }
+      }
+    }
+
+    // 3. Phân tích các câu hỏi từ qSection
+    const lines = qSection.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+    const questions: Array<{
+      order: number;
+      content: string;
+      option_a: string;
+      option_b: string;
+      option_c: string;
+      option_d: string;
+      correct_option: string;
+      time_limit: number;
+    }> = [];
+
+    let currentQ: any = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Bắt đầu câu hỏi mới: "Câu 1:", "Câu 1.", "1.", "1/", "Question 1:"
+      const qMatch = line.match(/^(?:Câu\s*(\d+)[\s.:\-\/]+|(\d+)[\s.:\-\/]+|Question\s*(\d+)[\s.:\-\/]+)(.+)$/i);
+      if (qMatch) {
+        if (currentQ && currentQ.content && currentQ.option_a && currentQ.option_b) {
+          questions.push(currentQ);
+        }
+        const qOrder = parseInt(qMatch[1] || qMatch[2] || qMatch[3] || String(questions.length + 1), 10);
+        currentQ = {
+          order: qOrder,
+          content: qMatch[4].trim(),
+          option_a: '',
+          option_b: '',
+          option_c: '',
+          option_d: '',
+          correct_option: ansMap[qOrder] || 'A',
+          time_limit: 30,
+        };
+        continue;
+      }
+
+      if (!currentQ) continue;
+
+      // Đáp án inline dưới câu (nếu có): "Đáp án: A", "Đ/A: B", "Key: C", "Answer: D"
+      const ansMatch = line.match(/^(?:Đáp\s*án|Đ\/A|ĐA|Answer|Key)[\s.:=]+([A-D])/i);
+      if (ansMatch && !ansMap[currentQ.order]) {
+        currentQ.correct_option = ansMatch[1].toUpperCase();
+        continue;
+      }
+
+      // Các lựa chọn A, B, C, D (hoặc có hoa thị *A.)
+      const optMatch = line.match(/^(\*)?\s*([A-D])[\s.:\)\/]+(.+)$/i);
+      if (optMatch) {
+        const isStarred = optMatch[1] === '*';
+        const letter = optMatch[2].toUpperCase();
+        const text = optMatch[3].trim();
+
+        if (letter === 'A') currentQ.option_a = text;
+        else if (letter === 'B') currentQ.option_b = text;
+        else if (letter === 'C') currentQ.option_c = text;
+        else if (letter === 'D') currentQ.option_d = text;
+
+        if (isStarred && !ansMap[currentQ.order]) {
+          currentQ.correct_option = letter;
+        }
+        continue;
+      }
+
+      if (!currentQ.option_a && !currentQ.option_b) {
+        currentQ.content += ' ' + line;
+      }
+    }
+
+    if (currentQ && currentQ.content && currentQ.option_a && currentQ.option_b) {
+      questions.push(currentQ);
+    }
+
+    // Ánh xạ lại đáp án từ ansMap theo số thứ tự nếu có
+    questions.forEach((q, idx) => {
+      const orderNum = idx + 1;
+      if (ansMap[q.order]) {
+        q.correct_option = ansMap[q.order];
+      } else if (ansMap[orderNum]) {
+        q.correct_option = ansMap[orderNum];
+      }
+    });
+
+    return questions;
+  }
+
+  function handleAnalyzeWord() {
+    if (!bulkWordText.trim()) return;
+    const parsed = parseQuestionsFromWord(bulkWordText);
+    if (parsed.length === 0) {
+      alert('Không nhận diện được câu hỏi nào. Vui lòng kiểm tra lại cấu trúc văn bản: Câu 1: ..., A. ..., B. ..., C. ..., D. ...');
+      return;
+    }
+    setParsedQuestions(parsed);
+    setBulkStep('preview');
+  }
+
+  async function handleSaveBulkQuestions() {
+    if (!selectedQuiz || parsedQuestions.length === 0) return;
+
+    try {
+      setActionLoading(true);
+      await api.post(`/quizzes/${selectedQuiz.id}/questions/bulk`, {
+        questions: parsedQuestions,
+      });
+      loadQuizDetails(selectedQuiz.id);
+      setBulkWordText('');
+      setParsedQuestions([]);
+      setBulkStep('input');
+      setIsBulkWordOpen(false);
+      alert(`Đã lưu thành công ${parsedQuestions.length} câu hỏi vào đề!`);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Lỗi khi lưu câu hỏi');
+    } finally {
+      setActionLoading(false);
     }
   }
 
@@ -266,6 +456,13 @@ export default function QuizzesPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsBulkWordOpen(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-md shadow-indigo-600/20"
+                  >
+                    <FiFileText />
+                    <span>Nhập Đề Từ Word</span>
+                  </button>
                   <button
                     onClick={() => setIsAddQuestionOpen(true)}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-md shadow-amber-600/20"
@@ -546,6 +743,143 @@ export default function QuizzesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Bulk Import from Word */}
+      {isBulkWordOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <FiFileText className="text-indigo-400" />
+                  <span>Dán & Nhập Đề Trắc Nghiệm Từ File Word</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Hỗ trợ cả đáp án dưới mỗi câu HOẶC bảng đáp án ở dưới cuối file (ví dụ: Câu 1 2 3... / Đáp án C B D...)
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsBulkWordOpen(false);
+                  setBulkStep('input');
+                }}
+                className="text-slate-400 hover:text-white"
+              >
+                <FiX className="text-xl" />
+              </button>
+            </div>
+
+            {bulkStep === 'input' ? (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="mb-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300 font-mono">
+                  <span className="text-amber-400 font-bold block mb-1">Hệ thống tự động nhận diện:</span>
+                  • Bảng đáp án ở cuối văn bản (như: ĐÁP ÁN VÀ LỜI GIẢI / Câu 1 2 3... Đáp án C B D...)<br />
+                  • Hoặc danh sách đáp án ở cuối (1.C 2.B 3.D...)<br />
+                  • Hoặc dấu hoa thị (*A.), hoặc dòng Đáp án: A dưới từng câu.
+                </div>
+
+                <div className="flex-1 mb-4">
+                  <textarea
+                    rows={10}
+                    placeholder={`Dán toàn bộ nội dung file Word vào đây...\n\nVí dụ:\nCâu 1: Dung dịch là hỗn hợp\nA. của chất rắn trong chất lỏng\nB. của chất khí trong chất lỏng\nC. đồng nhất của chất rắn và dung môi\nD. đồng nhất của dung môi và chất tan\n\nCâu 2: Công thức của nước là gì?\nA. CO2\nB. H2O\nC. O2\nD. NaCl\n\nĐÁP ÁN VÀ LỜI GIẢI\nCâu  1  2\nĐáp án  D  B`}
+                    value={bulkWordText}
+                    onChange={(e) => setBulkWordText(e.target.value)}
+                    className="w-full h-full min-h-[220px] p-4 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkWordOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAnalyzeWord}
+                    disabled={!bulkWordText.trim()}
+                    className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-indigo-600/30"
+                  >
+                    <FiChevronRight className="text-base" />
+                    <span>Tiếp Tục: Phân Tích & Chọn Đáp Án</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                  <div className="text-xs font-bold text-emerald-400">
+                    ⚡ Đã nhận diện {parsedQuestions.length} câu hỏi. Bạn có thể click chọn lại đáp án đúng (A/B/C/D) cho từng câu:
+                  </div>
+                </div>
+
+                {/* Danh sách câu hỏi xem trước và chọn đáp án */}
+                <div className="flex-1 overflow-y-auto pr-1 space-y-3 max-h-[380px]">
+                  {parsedQuestions.map((q, idx) => (
+                    <div key={idx} className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80">
+                      <div className="font-bold text-sm text-white mb-2">
+                        <span className="text-amber-400 mr-2">Câu {idx + 1}:</span>
+                        {q.content}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-slate-300 mb-3 pl-2">
+                        <div className={q.correct_option === 'A' ? 'text-emerald-400 font-bold' : ''}>A. {q.option_a}</div>
+                        <div className={q.correct_option === 'B' ? 'text-emerald-400 font-bold' : ''}>B. {q.option_b}</div>
+                        <div className={q.correct_option === 'C' ? 'text-emerald-400 font-bold' : ''}>C. {q.option_c}</div>
+                        <div className={q.correct_option === 'D' ? 'text-emerald-400 font-bold' : ''}>D. {q.option_d}</div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-700/50">
+                        <span className="text-xs font-bold text-slate-400">Đáp án đúng:</span>
+                        {(['A', 'B', 'C', 'D'] as const).map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              const updated = [...parsedQuestions];
+                              updated[idx].correct_option = opt;
+                              setParsedQuestions(updated);
+                            }}
+                            className={`w-9 h-8 rounded-lg font-bold text-xs transition flex items-center justify-center ${
+                              q.correct_option === opt
+                                ? 'bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-300'
+                                : 'bg-slate-700/70 text-slate-300 hover:bg-slate-700 hover:text-white'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-between items-center gap-3 pt-3 mt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setBulkStep('input')}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+                  >
+                    Quay Lại Sửa Văn Bản
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveBulkQuestions}
+                    disabled={actionLoading || parsedQuestions.length === 0}
+                    className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-emerald-600/30"
+                  >
+                    <FiCheck />
+                    <span>{actionLoading ? 'Đang lưu...' : `Lưu Toàn Bộ ${parsedQuestions.length} Câu Hỏi`}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
