@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
+import { deleteStudent } from '../services/cascade';
 
 const router = Router();
 
@@ -176,13 +177,8 @@ router.put('/students/:id', (req: Request, res: Response) => {
 // DELETE /api/students/:id - Xóa HS
 router.delete('/students/:id', (req: Request, res: Response) => {
   try {
-    const db = getDB();
-    // Học sinh là dữ liệu chính: xóa luôn các bài làm của học sinh này để không bị chặn bởi khóa ngoại
-    const result = db.transaction((id: string) => {
-      db.prepare('DELETE FROM session_answers WHERE student_id = ?').run(id);
-      return db.prepare('DELETE FROM students WHERE id = ?').run(id);
-    })(String(req.params.id));
-    if (result.changes === 0) {
+    const changes = deleteStudent(String(req.params.id));
+    if (changes === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
     res.json({ success: true });

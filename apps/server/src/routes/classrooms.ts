@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
+import { deleteClassroom } from '../services/cascade';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -117,14 +118,8 @@ router.put('/:id', (req: Request, res: Response) => {
 // DELETE /api/classrooms/:id - Xóa lớp
 router.delete('/:id', (req: Request, res: Response) => {
   try {
-    const db = getDB();
-    // Lớp học là dữ liệu chính: xóa luôn các phiên thi (bài làm xóa theo CASCADE) và bài làm của HS trong lớp
-    const result = db.transaction((id: string) => {
-      db.prepare('DELETE FROM session_answers WHERE student_id IN (SELECT id FROM students WHERE classroom_id = ?)').run(id);
-      db.prepare('DELETE FROM exam_sessions WHERE classroom_id = ?').run(id);
-      return db.prepare('DELETE FROM classrooms WHERE id = ?').run(id);
-    })(String(req.params.id));
-    if (result.changes === 0) {
+    const changes = deleteClassroom(String(req.params.id));
+    if (changes === 0) {
       return res.status(404).json({ error: 'Classroom not found' });
     }
     res.json({ success: true });

@@ -78,6 +78,28 @@ function initializeDatabase() {
       UNIQUE(session_id, question_id, student_id)
     );
 
+    -- Tài khoản đăng nhập web (role: admin | teacher, status: active | pending | disabled)
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      full_name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'teacher' CHECK (role IN ('admin','teacher')),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active','pending','disabled')),
+      created_at TEXT DEFAULT (datetime('now')),
+      last_login_at TEXT
+    );
+
+    -- Token đặt lại mật khẩu (chỉ lưu hash của token, dùng 1 lần, có hạn)
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_students_classroom ON students(classroom_id);
     CREATE INDEX IF NOT EXISTS idx_questions_quiz ON questions(quiz_id);
     CREATE INDEX IF NOT EXISTS idx_answers_session ON session_answers(session_id);

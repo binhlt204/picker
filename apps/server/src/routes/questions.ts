@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
+import { deleteQuestion } from '../services/cascade';
 
 const router = Router();
 
@@ -170,13 +171,8 @@ router.put('/questions/:id', (req: Request, res: Response) => {
 // DELETE /api/questions/:id - Xóa câu hỏi
 router.delete('/questions/:id', (req: Request, res: Response) => {
   try {
-    const db = getDB();
-    // Câu hỏi là dữ liệu chính: xóa luôn các bài làm đã ghi nhận cho câu này để không bị chặn bởi khóa ngoại
-    const result = db.transaction((id: string) => {
-      db.prepare('DELETE FROM session_answers WHERE question_id = ?').run(id);
-      return db.prepare('DELETE FROM questions WHERE id = ?').run(id);
-    })(String(req.params.id));
-    if (result.changes === 0) {
+    const changes = deleteQuestion(String(req.params.id));
+    if (changes === 0) {
       return res.status(404).json({ error: 'Question not found' });
     }
     res.json({ success: true });

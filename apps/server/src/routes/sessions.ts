@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
+import { requireAuth } from '../auth/middleware';
 import http from 'http';
 import { getOrCreateActiveSession, submitAnswers } from '../socket/sessionHandler';
 
@@ -71,7 +72,7 @@ router.get('/:id', (req: Request, res: Response) => {
 });
 
 // POST /api/sessions - Tạo phiên mới
-router.post('/', (req: Request, res: Response) => {
+router.post('/', requireAuth, (req: Request, res: Response) => {
   try {
     const { classroom_id, quiz_id } = req.body;
     if (!classroom_id || !quiz_id) {
@@ -100,7 +101,7 @@ router.post('/', (req: Request, res: Response) => {
 });
 
 // PATCH /api/sessions/:id/status - Cập nhật trạng thái phiên
-router.patch('/:id/status', (req: Request, res: Response) => {
+router.patch('/:id/status', requireAuth, (req: Request, res: Response) => {
   try {
     const { status } = req.body;
     if (!['WAITING', 'ACTIVE', 'COMPLETED'].includes(status)) {
@@ -121,7 +122,7 @@ router.patch('/:id/status', (req: Request, res: Response) => {
 });
 
 // GET /api/sessions/:id/results - Bảng điểm chi tiết phiên thi
-router.get('/:id/results', (req: Request, res: Response) => {
+router.get('/:id/results', requireAuth, (req: Request, res: Response) => {
   try {
     const db = getDB();
     const session = db.prepare(`

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
+import { deleteQuiz } from '../services/cascade';
 
 const router = Router();
 
@@ -77,14 +78,8 @@ router.put('/:id', (req: Request, res: Response) => {
 // DELETE /api/quizzes/:id - Xóa đề
 router.delete('/:id', (req: Request, res: Response) => {
   try {
-    const db = getDB();
-    // Xóa bộ đề: xóa luôn các phiên thi dùng đề này và bài làm của các câu hỏi trong đề
-    const result = db.transaction((id: string) => {
-      db.prepare('DELETE FROM session_answers WHERE question_id IN (SELECT id FROM questions WHERE quiz_id = ?)').run(id);
-      db.prepare('DELETE FROM exam_sessions WHERE quiz_id = ?').run(id);
-      return db.prepare('DELETE FROM quizzes WHERE id = ?').run(id);
-    })(String(req.params.id));
-    if (result.changes === 0) {
+    const changes = deleteQuiz(String(req.params.id));
+    if (changes === 0) {
       return res.status(404).json({ error: 'Quiz not found' });
     }
     res.json({ success: true });

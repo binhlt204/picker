@@ -18,7 +18,7 @@ router.get('/overview', (req: Request, res: Response) => {
       dbSizeBytes = stat.size;
     } catch {}
 
-    const tableNames = ['classrooms', 'students', 'quizzes', 'questions', 'exam_sessions', 'session_answers'];
+    const tableNames = ['users', 'classrooms', 'students', 'quizzes', 'questions', 'exam_sessions', 'session_answers'];
     const counts: Record<string, number> = {};
 
     tableNames.forEach((table) => {

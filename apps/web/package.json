@@ -9,12 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.5.0",
+    "@mui/material": "^9.5.0",
     "@pickball/shared": "*",
     "axios": "^1.7.9",
     "next": "16.4.3",
+    "ra-i18n-polyglot": "^5.15.5",
+    "ra-language-english": "^5.15.5",
+    "ra-language-vietnamese": "^3.0.1",
     "react": "19.3.0",
+    "react-admin": "^5.15.5",
     "react-dom": "19.3.0",
     "react-icons": "^5.4.0",
+    "react-router-dom": "^7.18.5",
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {

@@ -33,3 +33,6 @@ plan/
 *.aab
 *.ipa
 *.log
+# Khóa bí mật JWT tự sinh của server
+apps/server/data/.jwt-secret
+.jwt-secret

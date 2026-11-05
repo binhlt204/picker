@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import ExcelJS from 'exceljs';
 import { getDB } from '../database';
+import { requireAuth } from '../auth/middleware';
 
 const router = Router();
 
-router.get('/sessions/:id/results/export', async (req: Request, res: Response) => {
+router.get('/sessions/:id/results/export', requireAuth, async (req: Request, res: Response) => {
   try {
     const { format = 'xlsx' } = req.query;
     const db = getDB();
@@ -109,13 +110,13 @@ router.get('/sessions/:id/results/export', async (req: Request, res: Response) =
     const fileNameBase = `Ket_qua_${session.classroom_name}_${session.quiz_title}`.replace(/[\s/\\?%*:|"<>]/g, '_');
 
     if (format === 'csv') {
+      res.attachment(`${fileNameBase}.csv`); // mã hóa tên file chuẩn (RFC 5987) để hỗ trợ tên có dấu
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileNameBase}.csv"`);
       await workbook.csv.write(res);
       res.end();
     } else {
+      res.attachment(`${fileNameBase}.xlsx`); // mã hóa tên file chuẩn (RFC 5987) để hỗ trợ tên có dấu
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileNameBase}.xlsx"`);
       await workbook.xlsx.write(res);
       res.end();
     }
