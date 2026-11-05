@@ -4,6 +4,27 @@ import { getDB } from '../database';
 
 const router = Router();
 
+// Hàm so sánh tên theo chuẩn tiếng Việt: Tên trước, Họ và Đệm sau
+export function compareVietnameseNames(nameA: string, nameB: string): number {
+  const cleanA = (nameA || '').trim().replace(/^[\s\d]+[.\-–/)\s]+/, '').trim();
+  const cleanB = (nameB || '').trim().replace(/^[\s\d]+[.\-–/)\s]+/, '').trim();
+
+  const partsA = cleanA.split(/\s+/);
+  const partsB = cleanB.split(/\s+/);
+
+  const tenA = partsA.length > 0 ? partsA[partsA.length - 1] : '';
+  const tenB = partsB.length > 0 ? partsB[partsB.length - 1] : '';
+
+  const collator = new Intl.Collator('vi', { sensitivity: 'base' });
+  const cmpTen = collator.compare(tenA, tenB);
+  if (cmpTen !== 0) return cmpTen;
+
+  const hoDemA = partsA.slice(0, -1).join(' ');
+  const hoDemB = partsB.slice(0, -1).join(' ');
+  return collator.compare(hoDemA, hoDemB);
+}
+
+
 // GET /api/classrooms/:classId/students - Danh sách HS của lớp
 router.get('/classrooms/:classId/students', (req: Request, res: Response) => {
   try {
@@ -87,11 +108,24 @@ router.post('/classrooms/:classId/students/bulk', (req: Request, res: Response) 
     `);
 
     const insertedList: any[] = [];
+    // Làm sạch tiền tố số (1., 02/, 3 -...)
+    const cleanStudents = students.map((item) => {
+      const rawName = item.full_name || '';
+      const cleanName = rawName.trim().replace(/^[\s\d]+[.\-–/)\s]+/, '').trim();
+      return { ...item, full_name: cleanName };
+    }).filter(s => s.full_name.length > 0);
+
+    // Tự động sắp xếp theo A-Z nếu được yêu cầu (hoặc mặc định)
+    const { sort_az } = req.body;
+    if (sort_az !== false) {
+      cleanStudents.sort((a, b) => compareVietnameseNames(a.full_name, b.full_name));
+    }
+
     const transaction = db.transaction(() => {
-      students.forEach((item, index) => {
+      cleanStudents.forEach((item, index) => {
         const id = uuidv4();
         const cardId = availableCardIds[index];
-        const name = item.full_name?.trim();
+        const name = item.full_name;
         if (name) {
           insertStmt.run(id, classId, cardId, name);
           insertedList.push({ id, classroom_id: classId, card_id: cardId, full_name: name });
@@ -148,6 +182,41 @@ router.delete('/students/:id', (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Student not found' });
     }
     res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// POST /api/classrooms/:classId/reorder-az - Tự động sắp xếp lại toàn bộ thẻ học sinh trong lớp theo vần A-Z
+router.post('/classrooms/:classId/reorder-az', (req: Request, res: Response) => {
+  try {
+    const { classId } = req.params;
+    const db = getDB();
+
+    const students = db.prepare('SELECT id, full_name, card_id FROM students WHERE classroom_id = ?').all(classId) as any[];
+    if (students.length === 0) {
+      return res.json({ success: true, count: 0, students: [] });
+    }
+
+    // Sắp xếp danh sách theo bảng chữ cái tiếng Việt (Tên -> Họ và Đệm)
+    students.sort((a, b) => compareVietnameseNames(a.full_name, b.full_name));
+
+    // Dùng transaction và tạm thời gán card_id âm để không xung đột UNIQUE constraint
+    const updateStmt = db.prepare('UPDATE students SET card_id = ? WHERE id = ?');
+    const transaction = db.transaction(() => {
+      students.forEach((st, idx) => {
+        updateStmt.run(-(idx + 1000), st.id);
+      });
+      students.forEach((st, idx) => {
+        updateStmt.run(idx + 1, st.id);
+      });
+    });
+
+    transaction();
+
+    const updated = db.prepare('SELECT * FROM students WHERE classroom_id = ? ORDER BY card_id ASC').all(classId);
+    res.json({ success: true, count: updated.length, students: updated });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -13,6 +13,7 @@ import {
   FiUserPlus,
   FiFileText,
   FiGrid,
+  FiRefreshCw,
 } from 'react-icons/fi';
 
 interface Student {
@@ -20,6 +21,25 @@ interface Student {
   classroom_id: string;
   card_id: number;
   full_name: string;
+}
+
+function compareVietnameseNames(nameA: string, nameB: string): number {
+  const cleanA = (nameA || '').trim().replace(/^[\s\d]+[.\-–/)\s]+/, '').trim();
+  const cleanB = (nameB || '').trim().replace(/^[\s\d]+[.\-–/)\s]+/, '').trim();
+
+  const partsA = cleanA.split(/\s+/);
+  const partsB = cleanB.split(/\s+/);
+
+  const tenA = partsA.length > 0 ? partsA[partsA.length - 1] : '';
+  const tenB = partsB.length > 0 ? partsB[partsB.length - 1] : '';
+
+  const collator = new Intl.Collator('vi', { sensitivity: 'base' });
+  const cmpTen = collator.compare(tenA, tenB);
+  if (cmpTen !== 0) return cmpTen;
+
+  const hoDemA = partsA.slice(0, -1).join(' ');
+  const hoDemB = partsB.slice(0, -1).join(' ');
+  return collator.compare(hoDemA, hoDemB);
 }
 
 interface Classroom {
@@ -44,6 +64,7 @@ export default function ClassroomsPage() {
 
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [bulkNamesText, setBulkNamesText] = useState('');
+  const [sortAZ, setSortAZ] = useState(true);
 
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -132,21 +153,42 @@ export default function ClassroomsPage() {
     }
   }
 
+  async function handleReorderAZ() {
+    if (!selectedClass) return;
+    if (!confirm(`Sắp xếp lại toàn bộ thẻ của lớp ${selectedClass.name} theo thứ tự bảng chữ cái A-Z (theo Tên)?`)) return;
+
+    try {
+      setActionLoading(true);
+      await api.post(`/classrooms/${selectedClass.id}/reorder-az`);
+      loadClassDetails(selectedClass.id);
+      alert('Đã sắp xếp lại toàn bộ thẻ học sinh theo vần A-Z thành công!');
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Lỗi khi sắp xếp lại thẻ');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   async function handleBulkImport(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedClass || !bulkNamesText.trim()) return;
 
-    const names = bulkNamesText
+    let names = bulkNamesText
       .split('\n')
-      .map((n) => n.trim())
+      .map((n) => n.trim().replace(/^[\s\d]+[.\-–/)\s]+/, '').trim())
       .filter((n) => n.length > 0);
 
     if (names.length === 0) return;
+
+    if (sortAZ) {
+      names.sort(compareVietnameseNames);
+    }
 
     try {
       setActionLoading(true);
       await api.post(`/classrooms/${selectedClass.id}/students/bulk`, {
         students: names.map((full_name) => ({ full_name })),
+        sort_az: sortAZ,
       });
       loadClassDetails(selectedClass.id);
       setBulkNamesText('');
@@ -157,6 +199,7 @@ export default function ClassroomsPage() {
       setActionLoading(false);
     }
   }
+
 
   async function handleDeleteStudent(studentId: string) {
     if (!confirm('Xóa học sinh này khỏi danh sách?')) return;
@@ -285,6 +328,18 @@ export default function ClassroomsPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {selectedClass.students && selectedClass.students.length > 0 && (
+                    <button
+                      onClick={handleReorderAZ}
+                      disabled={actionLoading}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition"
+                      title="Sắp xếp lại toàn bộ mã thẻ #01..#50 theo thứ tự bảng chữ cái A-Z"
+                    >
+                      <FiRefreshCw className={actionLoading ? 'animate-spin' : ''} />
+                      <span>Sắp xếp lại thẻ (A-Z)</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => setIsBulkImportOpen(true)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition"
@@ -491,12 +546,25 @@ export default function ClassroomsPage() {
               <div>
                 <textarea
                   rows={8}
-                  placeholder={`Nguyễn Văn An\nTrần Thị Bình\nLê Hoàng Cường\nPhạm Minh Dũng...`}
+                  placeholder={`Nguyễn Văn An\nTrần Thị Bình\nLê Hoàng Cường\nPhạm Minh Dũng...\n(Hoặc dán có số: 1. Nguyễn Văn An, 2. Trần Thị Bình...)`}
                   value={bulkNamesText}
                   onChange={(e) => setBulkNamesText(e.target.value)}
                   className="w-full p-4 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-emerald-500"
                   required
                 />
+              </div>
+
+              <div className="flex items-center gap-2 px-1">
+                <input
+                  type="checkbox"
+                  id="sortAZCheckbox"
+                  checked={sortAZ}
+                  onChange={(e) => setSortAZ(e.target.checked)}
+                  className="w-4 h-4 rounded text-emerald-600 bg-slate-800 border-slate-700 focus:ring-emerald-500 cursor-pointer"
+                />
+                <label htmlFor="sortAZCheckbox" className="text-xs text-slate-300 font-semibold cursor-pointer select-none">
+                  Tự động sắp xếp theo thứ tự bảng chữ cái A-Z (theo Tên chuẩn Việt Nam)
+                </label>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
