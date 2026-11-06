@@ -1,4 +1,4 @@
-# 🚀 HƯỚNG DẪN CHẠY PICKBALL — TỪNG BƯỚC
+# 🚀 HƯỚNG DẪN CHẠY LB HOUSE — TỪNG BƯỚC
 
 > Mục tiêu: sau khi đọc xong, bạn chạy được hệ thống và tổ chức được một buổi kiểm tra trên lớp.
 
@@ -25,7 +25,7 @@
 - **Flutter** (chỉ cần nếu muốn tự build app điện thoại) — https://flutter.dev
 
 ### Bước 2. Cài thư viện
-Mở terminal tại thư mục `D:\pickball` rồi chạy:
+Mở terminal tại thư mục `thư mục dự án` rồi chạy:
 
 ```bash
 npm install
@@ -42,7 +42,7 @@ npm run seed
 
 ## PHẦN B — KHỞI ĐỘNG MỖI LẦN DÙNG
 
-Cần mở **2 cửa sổ terminal** tại `D:\pickball`:
+Cần mở **2 cửa sổ terminal** tại `thư mục dự án`:
 
 **Terminal 1 — Server + Web:**
 ```bash
@@ -93,8 +93,8 @@ flutter run
 ### Bước 1. Tải file IPA từ GitHub
 1. Đăng nhập GitHub rồi mở repo `https://github.com/binhlt204/picker` → tab **Actions** → chọn lần chạy **Build iOS IPA** mới nhất có **dấu tick xanh ✅**.
    (Bản đã build thành công: https://github.com/binhlt204/picker/actions/runs/41950392173)
-2. Kéo xuống cuối trang, mục **Artifacts**, bấm **`pickball-scanner-ios-ipa`** để tải file `.zip`.
-3. **Giải nén** file zip, được file **`pickball-scanner.ipa`**.
+2. Kéo xuống cuối trang, mục **Artifacts**, bấm **`lbhouse-scanner-ios-ipa`** để tải file `.zip`.
+3. **Giải nén** file zip, được file **`lbhouse-scanner.ipa`**.
 
 > Artifact chỉ giữ **7 ngày**. Hết hạn thì vào tab **Actions → Build iOS IPA → Run workflow** (chọn nhánh `binh`), chờ khoảng 5–10 phút rồi tải lại.
 
@@ -106,9 +106,9 @@ flutter run
 
 ### Bước 3. Ký và cài bằng Sideloadly
 1. Mở **Sideloadly**, ô thiết bị phải hiện tên iPhone của bạn.
-2. Kéo file **`pickball-scanner.ipa`** vào ô IPA.
+2. Kéo file **`lbhouse-scanner.ipa`** vào ô IPA.
 3. Nhập **Apple ID** (nên dùng Apple ID phụ nếu có), bấm **Start**, nhập mật khẩu và mã xác minh hai bước nếu được hỏi.
-4. Chờ thanh tiến trình chạy xong. Trên iPhone sẽ xuất hiện biểu tượng **Pickball Scanner**.
+4. Chờ thanh tiến trình chạy xong. Trên iPhone sẽ xuất hiện biểu tượng **LB HOUSE Scanner**.
 
 **Nếu báo lỗi `LOCKDOWN_E_USER_DENIED_PAIRING`** (iPhone chưa tin cậy máy tính):
 1. Bấm **Cancel**, rút cáp, mở khoá iPhone rồi cắm lại.
@@ -122,7 +122,7 @@ flutter run
 
 ### Bước 5. Mở app và kết nối server
 1. Trên laptop, chạy sẵn Server và Detector (xem **Phần B**). iPhone và laptop phải dùng **chung WiFi**.
-2. Mở app **Pickball Scanner** trên iPhone. Khi hỏi quyền **Camera** và **Mạng cục bộ**, bấm **Cho phép** cả hai.
+2. Mở app **LB HOUSE Scanner** trên iPhone. Khi hỏi quyền **Camera** và **Mạng cục bộ**, bấm **Cho phép** cả hai.
 3. Sửa ô địa chỉ thành `http://<IP-laptop>:3001` (ví dụ `http://192.168.1.25:3001`) rồi bấm **Kết nối**.
 4. Chọn phiên kiểm tra → bấm **Bắt đầu**.
 
@@ -152,7 +152,7 @@ Dùng khi điện thoại của người khác **không cùng WiFi** với lapto
 **Lưu ý:**
 - Địa chỉ miễn phí **đổi mỗi lần chạy lại** lệnh. Mỗi buổi phải gửi địa chỉ mới cho người kia.
 - Máy bạn phải **bật suốt buổi**, không để ngủ máy.
-- **Bảo mật:** các API quản lý (lớp, đề, học sinh, xuất file, quản trị) đều **yêu cầu đăng nhập** (xem Phần D0), nên người có địa chỉ tunnel chưa đăng nhập không xem hay sửa được dữ liệu. **App điện thoại quét thẻ chưa có đăng nhập**, nên người biết địa chỉ tunnel vẫn xem được danh sách phiên thi và gửi ảnh quét. Chỉ gửi địa chỉ cho người tin cậy và tắt tunnel khi dùng xong.
+- **Bảo mật:** **toàn bộ API và kết nối thời gian thực (socket) đều yêu cầu đăng nhập** (xem Phần D0), và mỗi tài khoản chỉ truy cập được dữ liệu của chính mình. Người chỉ biết địa chỉ tunnel mà không có tài khoản không xem hay sửa được gì. Vẫn nên chỉ gửi địa chỉ cho người tin cậy và tắt tunnel khi dùng xong.
 - Ảnh quét được gửi qua Internet về laptop để Detector đọc, nên mạng yếu sẽ làm quét chậm hơn.
 
 ---
@@ -177,7 +177,7 @@ Từ phiên bản này, **vào web phải đăng nhập**. Trang đăng nhập: 
   $env:SMTP_PORT = "587"
   $env:SMTP_USER = "tai-khoan@gmail.com"
   $env:SMTP_PASS = "mat-khau-ung-dung"
-  $env:SMTP_FROM = "Pickball <tai-khoan@gmail.com>"
+  $env:SMTP_FROM = "LB HOUSE <tai-khoan@gmail.com>"
   $env:WEB_URL   = "http://localhost:3000"   # địa chỉ web dùng để tạo link trong email
   npm run dev
   ```
@@ -193,7 +193,12 @@ Dùng thư viện **react-admin** để quản lý tập trung: **Tài khoản**
 - Khóa một tài khoản có hiệu lực **ngay lập tức**, kể cả khi người đó đang đăng nhập.
 - Khóa bí mật JWT tự sinh và lưu ở `apps/server/data/.jwt-secret` (đã được bỏ qua trong git). Muốn tự đặt, dùng biến `JWT_SECRET` (từ 16 ký tự).
 
-**Điện thoại quét thẻ** hiện **chưa cần đăng nhập** để vẫn hoạt động như trước (chỉ dùng các API phiên thi). Người cùng mạng WiFi/tunnel xem được danh sách phiên thi.
+**Dữ liệu theo từng tài khoản**
+- Mỗi **lớp học, học sinh, bộ đề, câu hỏi, phiên thi** thuộc về **một tài khoản**. Giáo viên chỉ thấy và sửa dữ liệu của chính mình; quản trị viên thấy và quản lý tất cả (có thể **đổi chủ sở hữu** trong Quản trị → Lớp học / Bộ đề / Phiên thi).
+- **Dữ liệu có sẵn từ trước khi có tài khoản** được gán cho **tài khoản quản trị viên đầu tiên** ngay lúc đăng ký.
+- Muốn giáo viên khác dùng chung một lớp hoặc bộ đề: nhờ quản trị viên đổi chủ sở hữu, hoặc tạo bản riêng.
+
+**App điện thoại cũng phải đăng nhập** bằng cùng tài khoản với web (màn hình đăng nhập/đăng ký/quên mật khẩu giống web). Sau khi đăng nhập app hiển thị đúng **phiên thi, lớp học, bộ đề của tài khoản đó**, nên điện thoại và máy tính dùng cùng một tài khoản là dữ liệu đồng bộ.
 
 ---
 
@@ -217,7 +222,7 @@ Dùng thư viện **react-admin** để quản lý tập trung: **Tài khoản**
 2. Đồng hồ do **server** giữ: máy chiếu và điện thoại luôn hiện **cùng số giây**, và hết giờ server **tự khoá câu** (kể cả khi tạm đóng tab máy chiếu).
 
 ### 📱 Trên điện thoại
-1. Mở app **Pickball Scanner** → nhập `http://<IP-laptop>:3001` → bấm **Kết nối**.
+1. Mở app **LB HOUSE Scanner** → nhập `http://<IP-laptop>:3001` → bấm **Kết nối**.
 2. Chọn phiên kiểm tra → bấm **Bắt đầu**.
 
 ### ⏱️ Cài đặt thời gian (máy chiếu hoặc điện thoại)
@@ -236,6 +241,11 @@ Dùng thư viện **react-admin** để quản lý tập trung: **Tài khoản**
 - Cài đặt được lưu theo **từng phiên thi**, không làm thay đổi thời gian gốc trong ngân hàng đề.
 - Trên điện thoại, nếu phiên chưa bắt đầu sẽ có nút **Bắt đầu câu …**.
 
+### 🔓 Khóa và mở khóa câu hỏi
+- **Khóa câu**: dừng nhận bài, máy chiếu hiện đáp án đúng và thống kê. Câu bị khóa **vẫn được giữ lại** (không mất bài đã nộp).
+- **Mở khóa** (nút ở máy chiếu và ở app điện thoại, cạnh nút Khóa/Câu tiếp theo): mở lại **đúng câu đó**, **giữ nguyên các bài đã nộp**, cho quét tiếp và **đếm giờ lại từ đầu** theo cài đặt thời gian hiện tại (hoặc không giới hạn nếu đang tắt đếm giờ). Dùng khi hết giờ rồi mà còn học sinh chưa kịp giơ thẻ.
+- Không mở khóa được khi phiên đã **Kết thúc**.
+
 ### 🔁 Vòng lặp cho mỗi câu hỏi
 
 | # | Ai làm | Thao tác |
@@ -244,7 +254,7 @@ Dùng thư viện **react-admin** để quản lý tập trung: **Tài khoản**
 | 2 | HS | Xoay thẻ sao cho **chữ cái mình chọn (A/B/C/D) nằm ở cạnh trên**, giơ thẻ trước ngực, không che mã |
 | 3 | GV | Trên điện thoại mở **Camera quét**, lia chậm qua cả lớp |
 | 4 | HS | Nhìn máy chiếu: ô số thẻ của mình **sáng xanh ✓** là đã được ghi nhận (máy chiếu không lộ đáp án) |
-| 5 | Tự động / GV | Hết giờ thì server tự khoá câu (nếu đang tắt đếm giờ thì GV tự khoá). Muốn khoá sớm thì bấm **Khóa câu**. Màn hình hiện đáp án đúng và biểu đồ % |
+| 5 | Tự động / GV | Hết giờ thì server tự khoá câu (nếu đang tắt đếm giờ thì GV tự khoá). Muốn khoá sớm thì bấm **Khóa câu**. Màn hình hiện đáp án đúng và biểu đồ %. Còn học sinh chưa kịp nộp thì bấm **Mở khóa** (xem bên dưới) |
 | 6 | GV | Chữa bài nhanh, rồi bấm **Câu tiếp theo** |
 
 ### 🏁 Kết thúc

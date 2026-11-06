@@ -7,17 +7,35 @@ class SocketService {
   void connect(
     String serverUrl,
     String sessionId, {
+    required String token,
     Function(Map<String, dynamic>)? onQuestionStarted,
     Function(Map<String, dynamic>)? onQuestionLocked,
+    Function(Map<String, dynamic>)? onQuestionUnlocked,
     Function(Map<String, dynamic>)? onStudentsUpdated,
     Function()? onSessionEnded,
     Function(bool)? onConnectionChange,
     Function(Map<String, dynamic>)? onTimerSettings,
     Function(String)? onError,
+    Function()? onAuthError,
   }) {
     _socket = socket_io.io(serverUrl, <String, dynamic>{
       'transports': ['websocket', 'polling'],
       'autoConnect': true,
+      'auth': {'token': token},
+    });
+
+    // Server từ chối token (hết hạn / bị thu hồi) -> báo để app đăng xuất
+    _socket?.on('connect_error', (err) {
+      if (err.toString().contains('UNAUTHENTICATED')) {
+        onAuthError?.call();
+      }
+    });
+
+    // Mở khóa câu: cùng câu hỏi, giữ nguyên đáp án đã quét, đồng hồ đếm lại
+    _socket?.on('question_unlocked', (data) {
+      if (data is Map) {
+        onQuestionUnlocked?.call(Map<String, dynamic>.from(data));
+      }
     });
 
     _socket?.onConnect((_) {
@@ -79,6 +97,11 @@ class SocketService {
 
   void lockQuestion(String sessionId) {
     _socket?.emit('lock_question', {'sessionId': sessionId});
+  }
+
+  /// Mở khóa câu hiện tại để quét tiếp (server phát lại `question_unlocked` cho mọi thiết bị).
+  void unlockQuestion(String sessionId) {
+    _socket?.emit('unlock_question', {'sessionId': sessionId});
   }
 
   /// Chuyển câu. Thời gian của câu do server tự tính theo cài đặt hẹn giờ của phiên.

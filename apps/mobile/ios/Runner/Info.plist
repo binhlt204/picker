@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Pickball Scanner</string>
+	<string>LB HOUSE Scanner</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -40,7 +40,7 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Ứng dụng cần kết nối vào mạng WiFi nội bộ để gửi dữ liệu chấm thi tới máy chủ Pickball.</string>
+	<string>Ứng dụng cần kết nối vào mạng WiFi nội bộ để gửi dữ liệu chấm thi tới máy chủ LB HOUSE.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_http._tcp</string>

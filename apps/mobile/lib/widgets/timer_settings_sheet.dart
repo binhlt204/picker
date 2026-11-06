@@ -36,7 +36,7 @@ Future<void> showTimerSettingsSheet({
     context: context,
     isScrollControlled: true,
     // Không đặt backgroundColor: lấy từ bottomSheetTheme (AppTheme.dark) để nền tối
-    // nhất quán với toàn app thay vì nền trắng kiểu Plickers trước đây.
+    // nhất quán với toàn app thay vì nền trắng kiểu trước đây.
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (sheetContext) => DraggableScrollableSheet(
       expand: false,

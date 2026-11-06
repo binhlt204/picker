@@ -1,11 +1,11 @@
-# 📋 TÀI LIỆU ĐẶC TẢ CHỨC NĂNG DỰ ÁN PICKBALL
+# 📋 TÀI LIỆU ĐẶC TẢ CHỨC NĂNG DỰ ÁN LB HOUSE
 ### Hệ Thống Trắc Nghiệm Thẻ Giấy Thời Gian Thực (Realtime Paper Quiz System)
 
 ---
 
 ## 1. TỔNG QUAN HỆ THỐNG
 
-**Pickball** là giải pháp kiểm tra trắc nghiệm tương tác trực tiếp trong lớp học, lấy cảm hứng từ Plickers nhưng được thiết kế hiện đại, tốc độ cao và tối ưu riêng cho môi trường giáo dục tại Việt Nam:
+**LB HOUSE** là giải pháp kiểm tra trắc nghiệm tương tác trực tiếp trong lớp học, lấy cảm hứng từ Plickers nhưng được thiết kế hiện đại, tốc độ cao và tối ưu riêng cho môi trường giáo dục tại Việt Nam:
 * **Học sinh KHÔNG cần điện thoại hay máy tính:** Mỗi học sinh chỉ dùng một tấm thẻ giấy in mã thị giác máy tính **ArUco Marker**. Khi chọn đáp án A, B, C hoặc D, học sinh chỉ cần xoay cạnh tương ứng lên trên cùng.
 * **Giáo viên dùng điện thoại quét camera:** Lia camera 1 vòng qua lớp học trong 1 - 2 giây để thu nhận toàn bộ kết quả của 40 - 50 học sinh cùng lúc.
 * **Máy chiếu phòng học hiển thị kết quả tức thì:** Màn hình lớn đếm ngược, hiển thị danh sách nộp bài trực tiếp qua WebSocket độ trễ dưới 50ms, tự động khóa câu hỏi và hiển thị biểu đồ phân tích khi hết giờ.
@@ -27,7 +27,7 @@
                       ┌────────────────────────────────────────┐
                       │          🖥️ Backend Server             │
                       │        (Node.js + Socket.io)           │
-                      │        (SQLite: pickball.db)           │
+                      │        (SQLite: lbhouse.db)           │
                       └──────────────────┬─────────────────────┘
                                          │
                                          │ WebSocket: "update_submitted_students"
@@ -128,9 +128,9 @@ Bộ công cụ tạo sẵn bộ thẻ in chuẩn quốc tế.
 
 ---
 
-## 4. BẢNG SO SÁNH: PICKBALL VỚI CÁC PHƯƠNG PHÁP KHÁC
+## 4. BẢNG SO SÁNH: LB HOUSE VỚI CÁC PHƯƠNG PHÁP KHÁC
 
-| Tiêu chí | Kiểm tra giấy truyền thống | Kahoot / Quizizz | Plickers quốc tế | **Pickball System** |
+| Tiêu chí | Kiểm tra giấy truyền thống | Kahoot / Quizizz | Plickers quốc tế | **LB HOUSE System** |
 | :--- | :---: | :---: | :---: | :---: |
 | **Thiết bị học sinh cần** | Bút, giấy | Điện thoại / Máy tính + 4G/Wifi | Thẻ giấy | **Chỉ cần thẻ giấy (In 1 lần dùng cả năm)** |
 | **Chi phí triển khai** | Tốn giấy in mỗi lần thi | Rất tốn kém (mua máy/mạng) | Giới hạn 5 câu hỏi nếu dùng miễn phí | **Hoàn toàn Miễn phí & Mã nguồn mở** |
@@ -145,7 +145,7 @@ Bộ công cụ tạo sẵn bộ thẻ in chuẩn quốc tế.
 ## 5. HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG
 
 ### Khởi động Web & Server:
-Tại thư mục gốc `c:\pickball`:
+Tại thư mục gốc `thư mục dự án`:
 ```bash
 npm run dev
 ```

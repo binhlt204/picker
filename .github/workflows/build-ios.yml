@@ -69,12 +69,12 @@ jobs:
           mkdir -p build/ios/ipa/Payload
           cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
           cd build/ios/ipa
-          zip -r -q pickball-scanner.ipa Payload
+          zip -r -q lbhouse-scanner.ipa Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pickball-scanner-ios-ipa
-          path: apps/mobile/build/ios/ipa/pickball-scanner.ipa
+          name: lbhouse-scanner-ios-ipa
+          path: apps/mobile/build/ios/ipa/lbhouse-scanner.ipa
           retention-days: 7
 

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// Theme tối duy nhất cho toàn app — trước đây `ThemeData` ở main.dart gần như
-/// bị bỏ qua vì mỗi màn hình tự ghi đè màu riêng (có màn hình còn chuyển hẳn
-/// sang nền sáng kiểu Plickers). Giờ mọi widget Material gốc (SwitchListTile,
+/// Theme tối duy nhất cho toàn app. Mọi widget Material gốc (SwitchListTile,
 /// AlertDialog, TextField, BottomSheet...) đọc màu qua Theme.of(context) thay
 /// vì hằng số viết tay, nên chỉ cần sửa 1 nơi là đồng bộ toàn app.
 class AppTheme {
@@ -15,6 +13,7 @@ class AppTheme {
       brightness: Brightness.dark,
     ).copyWith(
       primary: AppColors.brand,
+      onPrimary: Colors.white,
       error: AppColors.danger,
       surface: AppColors.surface,
       onSurface: AppColors.textPrimary,

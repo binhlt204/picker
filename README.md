@@ -1,4 +1,4 @@
-# 🎯 Pickball — Hệ Thống Trắc Nghiệm Thẻ Giấy Thời Gian Thực (Plickers Clone)
+# 🎯 LB HOUSE — Hệ Thống Trắc Nghiệm Thẻ Giấy Thời Gian Thực
 
 Hệ thống chấm điểm trắc nghiệm trực tiếp trong lớp học sử dụng mã thị giác máy tính **ArUco Marker**, kết nối đồng bộ thời gian thực giữa **Web App (Máy chiếu)**, **Mobile App (Camera quét)** và **Backend Server (Node.js + Socket.io + SQLite)**.
 
@@ -7,7 +7,7 @@ Hệ thống chấm điểm trắc nghiệm trực tiếp trong lớp học sử
 ## 🌟 Cấu trúc Monorepo
 
 ```
-pickball/
+lbhouse/
 ├── packages/
 │   └── shared/          # Types, interfaces và constants WebSocket dùng chung
 ├── apps/
@@ -25,7 +25,7 @@ pickball/
 ## 🚀 Hướng dẫn Chạy Hệ Thống
 
 ### 1. Khởi động Web & Backend Server đồng thời
-Tại thư mục gốc `c:\pickball`:
+Tại thư mục gốc `thư mục dự án`:
 ```bash
 npm run dev
 ```

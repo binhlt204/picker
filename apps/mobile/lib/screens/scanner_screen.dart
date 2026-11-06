@@ -1,17 +1,17 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
-import 'package:http/http.dart' as http;
+import '../services/api_client.dart';
+import '../services/auth_service.dart';
+import '../services/nav.dart';
 import '../services/socket_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/server_timer.dart';
 
 class ScannerScreen extends StatefulWidget {
-  final String serverUrl;
   final String sessionId;
   final String sessionTitle;
   final String className;
@@ -19,7 +19,6 @@ class ScannerScreen extends StatefulWidget {
 
   const ScannerScreen({
     super.key,
-    required this.serverUrl,
     required this.sessionId,
     required this.sessionTitle,
     required this.className,
@@ -57,13 +56,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   Future<void> _fetchCurrentQuestion() async {
     try {
-      final res = await http.get(
-        Uri.parse('${widget.serverUrl}/api/sessions/${widget.sessionId}/current-question'),
-      );
-      if (res.statusCode == 200 && mounted) {
-        final data = jsonDecode(res.body);
+      final data = await ApiClient.get('/sessions/${widget.sessionId}/current-question');
+      if (data is Map && mounted) {
         setState(() {
-          _currentQuestion = data;
+          _currentQuestion = Map<String, dynamic>.from(data);
           _isLocked = data['isLocked'] ?? false;
           _timer.apply(data);
           _secondsLeft = _timer.secondsLeft();
@@ -147,14 +143,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
           }
 
           // Gửi frame tới server để nhận diện ArUco OpenCV
-          final res = await http.post(
-            Uri.parse('${widget.serverUrl}/api/sessions/${widget.sessionId}/scan-frame'),
-            headers: {'Content-Type': 'application/octet-stream'},
-            body: bytes,
-          );
+          final data = await ApiClient.postBytes('/sessions/${widget.sessionId}/scan-frame', bytes);
 
-          if (res.statusCode == 200 && mounted) {
-            final data = jsonDecode(res.body);
+          if (data is Map && mounted) {
             final List<dynamic> accepted = data['accepted'] ?? [];
             if (accepted.isNotEmpty) {
               final newNames = <String>[];
@@ -185,8 +176,21 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   void _initSocket() {
     _socketService.connect(
-      widget.serverUrl,
+      AuthService.instance.serverUrl,
       widget.sessionId,
+      token: AuthService.instance.token ?? '',
+      onAuthError: () => AuthService.instance.sessionExpired(),
+      onError: (msg) => showAppMessage(msg, error: true),
+      onQuestionUnlocked: (data) {
+        if (!mounted) return;
+        setState(() {
+          _isLocked = false;
+          _timer.apply(data);
+          _secondsLeft = _timer.secondsLeft();
+          _lastDetectedInfo = '🔓 Đã mở khóa, tiếp tục quét';
+        });
+        _startTimer();
+      },
       onQuestionStarted: (data) {
         if (!mounted) return;
         setState(() {
@@ -562,14 +566,18 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         Expanded(
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.dangerStrong,
+                              backgroundColor: _isLocked ? AppColors.brand : AppColors.dangerStrong,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             ),
-                            onPressed: _isLocked ? null : () => _socketService.lockQuestion(widget.sessionId),
-                            icon: const Icon(Icons.lock_outline, size: 18),
-                            label: const Text('Khóa Câu'),
+                            onPressed: _currentQuestion == null
+                                ? null
+                                : _isLocked
+                                    ? () => _socketService.unlockQuestion(widget.sessionId)
+                                    : () => _socketService.lockQuestion(widget.sessionId),
+                            icon: Icon(_isLocked ? Icons.lock_open_outlined : Icons.lock_outline, size: 18),
+                            label: Text(_isLocked ? 'Mở khóa' : 'Khóa câu'),
                           ),
                         ),
                         const SizedBox(width: 10),

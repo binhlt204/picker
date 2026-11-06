@@ -1,15 +1,16 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:http/http.dart' as http;
+import '../services/api_client.dart';
+import '../services/auth_service.dart';
+import '../services/nav.dart';
 import '../services/socket_service.dart';
+import '../theme/app_colors.dart';
 import '../utils/server_timer.dart';
 import '../widgets/timer_settings_sheet.dart';
 import 'scanner_screen.dart';
 
 class QuestionControllerScreen extends StatefulWidget {
-  final String serverUrl;
   final String sessionId;
   final String sessionTitle;
   final String className;
@@ -17,7 +18,6 @@ class QuestionControllerScreen extends StatefulWidget {
 
   const QuestionControllerScreen({
     super.key,
-    required this.serverUrl,
     required this.sessionId,
     required this.sessionTitle,
     required this.className,
@@ -78,8 +78,17 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
 
   void _initSocket() {
     _socketService.connect(
-      widget.serverUrl,
+      AuthService.instance.serverUrl,
       widget.sessionId,
+      token: AuthService.instance.token ?? '',
+      onAuthError: () => AuthService.instance.sessionExpired(),
+      onQuestionUnlocked: (data) {
+        if (!mounted) return;
+        setState(() {
+          _isLocked = false;
+          _applyTimer(data);
+        });
+      },
       onQuestionStarted: (data) {
         if (!mounted) return;
         setState(() {
@@ -148,7 +157,7 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
       },
       onError: (message) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        showAppMessage(message, error: true);
       },
       onSessionEnded: () {
         if (!mounted) return;
@@ -167,12 +176,8 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
     });
 
     try {
-      final res = await http
-          .get(Uri.parse('${widget.serverUrl}/api/sessions/${widget.sessionId}'))
-          .timeout(const Duration(seconds: 5));
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
+      final data = await ApiClient.get('/sessions/${widget.sessionId}');
+      {
         final List<dynamic> qList = data['questions'] ?? [];
         final List<dynamic> stList = data['students'] ?? [];
         final currentOrder = data['current_question_order'] ?? 1;
@@ -188,20 +193,17 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
           _questions = qList;
           _totalStudents = stList.length;
           _currentIndex = initIndex;
+          _correctOption = (qList.isNotEmpty ? qList[initIndex]['correct_option'] : null) ?? _correctOption;
           _loading = false;
         });
 
         // Lấy tiếp dữ liệu chi tiết của câu hiện tại
         await _fetchCurrentQuestionData();
-      } else {
-        setState(() {
-          _error = 'Lỗi máy chủ: ${res.statusCode}';
-          _loading = false;
-        });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _error = 'Không thể kết nối đến máy chủ: $e';
+        _error = e.toString();
         _loading = false;
       });
     }
@@ -209,11 +211,8 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
 
   Future<void> _fetchCurrentQuestionData() async {
     try {
-      final res = await http.get(
-        Uri.parse('${widget.serverUrl}/api/sessions/${widget.sessionId}/current-question'),
-      );
-      if (res.statusCode == 200 && mounted) {
-        final data = jsonDecode(res.body);
+      final data = await ApiClient.get('/sessions/${widget.sessionId}/current-question');
+      if (data is Map && mounted) {
         if (data['timerSettings'] != null) {
           _timerSettings.value = TimerSettingsData.fromJson(data['timerSettings']);
         }
@@ -301,25 +300,26 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
     Color color;
     if (!_started) {
       label = 'Chưa bắt đầu';
-      color = const Color(0xFF64748B);
+      color = AppColors.textMuted;
     } else if (_isLocked) {
       label = 'Đã khóa';
-      color = const Color(0xFF94A3B8);
+      color = AppColors.textMuted;
     } else if (left == null) {
       label = '∞';
-      color = const Color(0xFF0284C7);
+      color = AppColors.brand;
     } else {
       label = '${left}s';
-      color = left <= 5 ? Colors.redAccent : const Color(0xFF0F172A);
+      color = left <= 5 ? AppColors.danger : AppColors.brand;
     }
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: _openTimerSettings,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: const Color(0xFFE2E8F0),
+          color: AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -327,19 +327,23 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
             Icon(Icons.timer_outlined, size: 16, color: color),
             const SizedBox(width: 4),
             Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14)),
-            const SizedBox(width: 2),
-            const Icon(Icons.settings, size: 14, color: Color(0xFF64748B)),
+            const SizedBox(width: 4),
+            const Icon(Icons.settings, size: 14, color: AppColors.textMuted),
           ],
         ),
       ),
     );
   }
 
-  void _toggleLock() {
+  /// Khóa câu: giữ nguyên câu hiện tại, ngừng nhận đáp án (có thể mở khóa lại).
+  void _lock() {
     _socketService.lockQuestion(widget.sessionId);
-    setState(() {
-      _isLocked = true;
-    });
+    setState(() => _isLocked = true);
+  }
+
+  /// Mở khóa: cùng câu hỏi, giữ đáp án đã quét, đồng hồ đếm lại. Chờ server xác nhận (question_unlocked).
+  void _unlock() {
+    _socketService.unlockQuestion(widget.sessionId);
   }
 
   void _openCameraScanner() async {
@@ -347,7 +351,6 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => ScannerScreen(
-          serverUrl: widget.serverUrl,
           sessionId: widget.sessionId,
           sessionTitle: widget.sessionTitle,
           className: widget.className,
@@ -363,28 +366,26 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF0284C7))),
+        backgroundColor: AppColors.bg,
+        body: Center(child: CircularProgressIndicator(color: AppColors.brand)),
       );
     }
 
     if (_error != null) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.bg,
+        appBar: AppBar(backgroundColor: AppColors.bg),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                const Icon(Icons.error_outline, size: 48, color: AppColors.danger),
                 const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: Colors.black87), textAlign: TextAlign.center),
+                Text(_error!, style: const TextStyle(color: AppColors.textSecondary), textAlign: TextAlign.center),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _loadSessionDetails,
-                  child: const Text('Thử lại'),
-                ),
+                FilledButton(onPressed: _loadSessionDetails, child: const Text('Thử lại')),
               ],
             ),
           ),
@@ -410,77 +411,57 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
     final int avgPercent = responsesCount > 0 ? ((correctCount / responsesCount) * 100).round() : 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Nền sáng sạch sẽ chuẩn phong cách Plickers
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. TOP BAR: [1  5] ------- [8A1] [X]
+            // 1. THANH TRÊN: [1 / 5] ------- [đồng hồ] [Lớp] [X]
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Row(
                 children: [
-                  // Số thứ tự câu hỏi: 1  5
                   RichText(
                     text: TextSpan(
                       children: [
                         TextSpan(
                           text: '$qOrder ',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF0F172A),
-                          ),
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
                         ),
                         TextSpan(
-                          text: '$totalQ',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF94A3B8),
-                          ),
+                          text: '/ $totalQ',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textMuted),
                         ),
                       ],
                     ),
                   ),
-
-                  const Spacer(),
-
-                  // Đồng hồ đồng bộ + mở cài đặt thời gian
-                  _buildTimerChip(),
-
-                  const SizedBox(width: 8),
-
-                  // Badge tên lớp (Ví dụ: 8A1)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF38BDF8),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      widget.className,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                  const SizedBox(width: 10),
+                  // Tên lớp dài thì cắt bằng dấu "…" thay vì tràn khỏi màn hình
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.brand.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        widget.className,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                     ),
                   ),
-
-                  const SizedBox(width: 10),
-
-                  // Nút đóng thoát về trang chủ
+                  const Spacer(),
+                  _buildTimerChip(),
+                  const SizedBox(width: 8),
                   InkWell(
                     borderRadius: BorderRadius.circular(20),
                     onTap: () => Navigator.pop(context),
                     child: Container(
                       padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE2E8F0),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.close, size: 18, color: Color(0xFF475569)),
+                      decoration: const BoxDecoration(color: AppColors.surfaceAlt, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, size: 18, color: AppColors.textSecondary),
                     ),
                   ),
                 ],
@@ -497,21 +478,17 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
                     Text(
                       q != null ? 'Câu $qOrder. ${q['content']}' : 'Đang tải câu hỏi...',
                       style: const TextStyle(
-                        fontSize: 22,
+                        fontSize: 21,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
+                        color: AppColors.textPrimary,
                         height: 1.3,
                       ),
                     ),
-
                     if (_showCorrect && q != null) ...[
                       const SizedBox(height: 12),
                       _buildCorrectChip(_correctOption),
                     ],
-
                     const SizedBox(height: 24),
-
-                    // 4 LỰA CHỌN ĐÁP ÁN: A, B, C, D
                     _buildOptionRow('A', q?['option_a'] ?? ''),
                     const SizedBox(height: 16),
                     _buildOptionRow('B', q?['option_b'] ?? ''),
@@ -519,20 +496,20 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
                     _buildOptionRow('C', q?['option_c'] ?? ''),
                     const SizedBox(height: 16),
                     _buildOptionRow('D', q?['option_d'] ?? ''),
-
                     const SizedBox(height: 32),
-                    const Divider(color: Color(0xFFE2E8F0), height: 1),
+                    const Divider(color: AppColors.surfaceBorder, height: 1),
                     const SizedBox(height: 18),
 
-                    // 3. THỐNG KÊ (KPIs): [• 27% average] [11 responses] [35 missing]
+                    // 3. THỐNG KÊ: tỉ lệ đúng / đã trả lời / chưa trả lời
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStatItem('• $avgPercent%', 'average', isBullet: true),
-                        _buildStatItem('$responsesCount', 'responses'),
-                        _buildStatItem('$missingCount', 'missing'),
+                        _buildStatItem('$avgPercent%', 'đúng', isHighlight: true),
+                        _buildStatItem('$responsesCount', 'đã trả lời'),
+                        _buildStatItem('$missingCount', 'chưa trả lời'),
                       ],
                     ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -544,7 +521,7 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF0284C7),
+                    backgroundColor: AppColors.brand,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () => _changeQuestion(_currentIndex),
@@ -553,22 +530,15 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
                 ),
               ),
 
-            // 4. ACTION TOGGLES: [Show Correct] ---------- [Show Graph / Khóa câu]
+            // 4. NÚT PHỤ: [Ẩn/Hiện đáp án] ---------- [Khóa câu / Mở khóa]
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF0284C7),
-                      padding: EdgeInsets.zero,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _showCorrect = !_showCorrect;
-                      });
-                    },
+                    style: TextButton.styleFrom(foregroundColor: AppColors.brand, padding: EdgeInsets.zero),
+                    onPressed: () => setState(() => _showCorrect = !_showCorrect),
                     child: Text(
                       _showCorrect ? 'Ẩn đáp án' : 'Hiện đáp án',
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
@@ -576,13 +546,13 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
                   ),
                   TextButton.icon(
                     style: TextButton.styleFrom(
-                      foregroundColor: _isLocked ? Colors.redAccent : const Color(0xFF0284C7),
-                      padding: EdgeInsets.zero,
+                      foregroundColor: _isLocked ? AppColors.brand : AppColors.danger,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
-                    onPressed: (_isLocked || !_started) ? null : _toggleLock,
-                    icon: Icon(_isLocked ? Icons.lock : Icons.lock_open, size: 16),
+                    onPressed: !_started ? null : (_isLocked ? _unlock : _lock),
+                    icon: Icon(_isLocked ? Icons.lock_open_outlined : Icons.lock_outline, size: 18),
                     label: Text(
-                      _isLocked ? 'Đã khóa' : 'Khóa câu',
+                      _isLocked ? 'Mở khóa' : 'Khóa câu',
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -590,25 +560,23 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
               ),
             ),
 
-            // 5. BOTTOM CONTROL BAR: [|◀] ---- [◯ CAMERA] ---- [▶|]
+            // 5. THANH ĐIỀU KHIỂN DƯỚI: [|◀] ---- [◯ CAMERA] ---- [▶|]
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
               decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                color: AppColors.surface,
+                border: Border(top: BorderSide(color: AppColors.surfaceBorder)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Nút Câu trước: |◀
                   IconButton(
                     iconSize: 28,
-                    color: _currentIndex > 0 ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                    color: AppColors.textPrimary,
+                    disabledColor: AppColors.textDisabled,
                     icon: const Icon(Icons.skip_previous_rounded),
                     onPressed: _currentIndex > 0 ? _goToPreviousQuestion : null,
                   ),
-
-                  // NÚT TRÒN TO QUÉT CAMERA: ◯
                   GestureDetector(
                     onTap: _openCameraScanner,
                     child: Container(
@@ -616,26 +584,23 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
                       height: 68,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0xFF0EA5E9), width: 4.5),
+                        color: AppColors.surface,
+                        border: Border.all(color: AppColors.brand, width: 4),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0EA5E9).withValues(alpha: 0.25),
+                            color: AppColors.brand.withValues(alpha: 0.3),
                             blurRadius: 16,
                             offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Icon(Icons.camera_alt, color: Color(0xFF0EA5E9), size: 30),
-                      ),
+                      child: const Center(child: Icon(Icons.camera_alt, color: AppColors.brand, size: 30)),
                     ),
                   ),
-
-                  // Nút Câu tiếp theo: ▶|
                   IconButton(
                     iconSize: 28,
-                    color: _currentIndex < totalQ - 1 ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                    color: AppColors.textPrimary,
+                    disabledColor: AppColors.textDisabled,
                     icon: const Icon(Icons.skip_next_rounded),
                     onPressed: _currentIndex < totalQ - 1 ? _goToNextQuestion : null,
                   ),
@@ -653,17 +618,13 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF10B981).withValues(alpha: 0.12),
+        color: AppColors.success.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF10B981)),
+        border: Border.all(color: AppColors.success),
       ),
       child: Text(
         '✓ Đáp án đúng: ${option.toUpperCase()}',
-        style: const TextStyle(
-          color: Color(0xFF047857),
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-        ),
+        style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 15),
       ),
     );
   }
@@ -672,27 +633,22 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
   Widget _buildOptionRow(String optKey, String optText) {
     final count = _distribution[optKey] ?? 0;
     final isCorrect = _correctOption.toUpperCase() == optKey.toUpperCase();
+    final bool markCorrect = _showCorrect && isCorrect;
 
-    // Màu sắc theo trạng thái Show Correct
-    Color badgeColor = const Color(0xFFE2E8F0);
-    Color badgeTextColor = const Color(0xFF64748B);
+    // Ô chữ cái giữ màu riêng từng đáp án (khớp thẻ giấy); đáp án đúng thêm dấu ✓
+    final Color letterColor = AppColors.forOption(optKey);
+    final Color letterText = optKey.toUpperCase() == 'B' ? const Color(0xFF1C1917) : Colors.white;
+
+    // Thanh tiến độ: xanh nếu là đáp án đúng, đỏ nếu có học sinh chọn đáp án sai
     Color barColor = Colors.transparent;
-
     if (_showCorrect) {
       if (isCorrect) {
-        badgeColor = const Color(0xFF10B981);
-        badgeTextColor = Colors.white;
-        barColor = const Color(0xFF10B981);
-      } else {
-        badgeColor = const Color(0xFFF1F5F9);
-        badgeTextColor = const Color(0xFF64748B);
-        if (count > 0) {
-          barColor = const Color(0xFFF43F5E); // Màu đỏ nếu có học sinh chọn đáp án sai
-        }
+        barColor = AppColors.success;
+      } else if (count > 0) {
+        barColor = AppColors.danger;
       }
     }
 
-    // Tính độ dài thanh tiến độ dựa trên tỷ lệ phản hồi
     final int responsesCount = _answers.length;
     final double fraction = responsesCount > 0 ? (count / responsesCount).clamp(0.0, 1.0) : 0.0;
 
@@ -702,78 +658,68 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Badge chữ cái (A, B, C, D)
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: badgeColor,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                optKey,
-                style: TextStyle(
-                  color: badgeTextColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(color: letterColor, borderRadius: BorderRadius.circular(8)),
+                  alignment: Alignment.center,
+                  child: Text(
+                    optKey,
+                    style: TextStyle(color: letterText, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                 ),
-              ),
+                if (markCorrect)
+                  Positioned(
+                    right: -4,
+                    bottom: -4,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.bg, width: 1.5),
+                      ),
+                      child: const Icon(Icons.check, size: 9, color: Colors.white),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(width: 12),
-
-            // Nội dung đáp án
             Expanded(
               child: Text(
                 optText.isNotEmpty ? optText : '(Chưa có nội dung)',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF0F172A),
+                  color: optText.isNotEmpty ? AppColors.textPrimary : AppColors.textDisabled,
                   fontWeight: FontWeight.w600,
                   height: 1.25,
                 ),
               ),
             ),
-
             const SizedBox(width: 12),
-
-            // Số lượng học sinh chọn đáp án này
             Text(
               '$count',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F172A),
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
           ],
         ),
-
         const SizedBox(height: 6),
-
-        // Thanh tiến độ màu bên dưới đáp án
         LayoutBuilder(
           builder: (context, constraints) {
             final double fullWidth = constraints.maxWidth;
             final double barWidth = fraction * fullWidth;
-
             return Stack(
               children: [
-                // Đường viền nền mờ
-                Container(
-                  height: 3.5,
-                  width: fullWidth,
-                  color: const Color(0xFFF1F5F9),
-                ),
-                // Thanh màu thực tế
+                Container(height: 4, width: fullWidth, decoration: BoxDecoration(color: AppColors.surfaceAlt, borderRadius: BorderRadius.circular(2))),
                 if (barColor != Colors.transparent && barWidth > 0)
                   Container(
-                    height: 3.5,
+                    height: 4,
                     width: barWidth,
-                    decoration: BoxDecoration(
-                      color: barColor,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                    decoration: BoxDecoration(color: barColor, borderRadius: BorderRadius.circular(2)),
                   ),
               ],
             );
@@ -783,29 +729,21 @@ class _QuestionControllerScreenState extends State<QuestionControllerScreen> {
     );
   }
 
-  // Khối số liệu thống kê (average, responses, missing)
-  Widget _buildStatItem(String value, String label, {bool isBullet = false}) {
+  // Khối số liệu thống kê
+  Widget _buildStatItem(String value, String label, {bool isHighlight = false}) {
     return Column(
       children: [
         Text(
           value,
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: isBullet ? const Color(0xFFF43F5E) : const Color(0xFF0F172A),
+            color: isHighlight ? AppColors.brand : AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF94A3B8),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w500)),
       ],
     );
   }
 }
-

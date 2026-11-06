@@ -1,4 +1,4 @@
-package com.pickball.mobile
+package com.lbhouse.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 
