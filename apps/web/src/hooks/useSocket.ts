@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_EVENTS } from '@lbhouse/shared';
-import { getToken, setToken } from '@/lib/api';
+import { getToken, setToken, resolveBaseUrl } from '@/lib/api';
 import type {
   QuestionStartedPayload,
   UpdateSubmittedPayload,
@@ -32,7 +32,6 @@ function toClientTimer(t: TimerState): ClientTimer {
   return { timeLimit: t.timeLimit, endsAt: t.endsAt, clockOffset: t.serverNow - Date.now() };
 }
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
 
 export function useSocket(sessionId: string) {
   const socketRef = useRef<Socket | null>(null);
@@ -51,7 +50,7 @@ export function useSocket(sessionId: string) {
     if (!sessionId) return;
 
     // Bắt buộc đăng nhập: gửi JWT trong handshake (cùng token với REST API)
-    const socket = io(SOCKET_URL, {
+    const socket = io(resolveBaseUrl(process.env.NEXT_PUBLIC_SOCKET_URL), {
       transports: ['websocket', 'polling'],
       auth: { token: getToken() || '' },
     });

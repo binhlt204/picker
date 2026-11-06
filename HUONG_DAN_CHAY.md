@@ -157,6 +157,29 @@ Dùng khi điện thoại của người khác **không cùng WiFi** với lapto
 
 ---
 
+## PHẦN C4 — ĐƯA CẢ WEB + APP LÊN INTERNET (Cloudflare Tunnel, không cần tên miền)
+
+Cách này để **máy khác, khác mạng** vào được cả web lẫn app điện thoại. Server vẫn chạy trên máy của bạn, Cloudflare chỉ làm đường hầm. **Phải bật máy và giữ cửa sổ chạy** trong suốt buổi dùng.
+
+1. Cài `cloudflared` một lần: `winget install --id Cloudflare.cloudflared -e`
+2. Dừng `npm run dev` nếu đang chạy (script sẽ build bản chạy thật), rồi chạy một lệnh:
+   ```
+   powershell -ExecutionPolicy Bypass -File scripts\start-public.ps1
+   ```
+   Lần đầu build mất vài phút. Lần sau bật lại nhanh bằng thêm `-SkipBuild`.
+   Script tự bật luôn server, web và **detector Python** (quét thẻ), không cần chạy `npm run dev` hay `python scripts/detector_service.py` riêng.
+3. Tìm dòng **`https://xxxx.trycloudflare.com`** trong cửa sổ. Đó là địa chỉ chung cho mọi người.
+   - **Máy tính:** mở địa chỉ đó trên trình duyệt, đăng nhập như bình thường (máy chiếu cũng mở được từ địa chỉ này).
+   - **Điện thoại:** ô địa chỉ server trong app nhập đúng địa chỉ đó (không thêm cổng).
+4. Nhấn **Ctrl+C** để tắt tất cả.
+
+Lưu ý:
+- Địa chỉ `trycloudflare.com` **đổi mỗi lần bật** (miễn phí, không cần tài khoản). Muốn địa chỉ cố định phải có tên miền gắn Cloudflare, khi đó dùng *named tunnel*.
+- Trên máy này vẫn dùng được tại `http://localhost:8080`.
+- Mọi API và socket đều yêu cầu đăng nhập; chỉ đưa địa chỉ cho người tin cậy.
+- Camera trên điện thoại cần HTTPS, địa chỉ tunnel đã là HTTPS nên dùng được.
+- Script build web với `NEXT_PUBLIC_API_URL=same-origin`. Khi quay lại `npm run dev` bình thường thì chạy lại `npm run dev` (không đặt biến này).
+
 ## PHẦN D0 — TÀI KHOẢN & TRANG QUẢN TRỊ (đăng nhập web)
 
 Từ phiên bản này, **vào web phải đăng nhập**. Trang đăng nhập: `http://localhost:3000/login`.

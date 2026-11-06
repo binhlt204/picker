@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// 'same-origin' = gọi cùng địa chỉ với trang web (dùng khi chạy sau cổng gộp / Cloudflare Tunnel)
+export function resolveBaseUrl(value: string | undefined): string {
+  if (value === 'same-origin') return typeof window !== 'undefined' ? window.location.origin : '';
+  return value || 'http://localhost:3001';
+}
+
+const API_BASE_URL = resolveBaseUrl(process.env.NEXT_PUBLIC_API_URL);
 
 const TOKEN_KEY = 'lbhouse_token';
 
