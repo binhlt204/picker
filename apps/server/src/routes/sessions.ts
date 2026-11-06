@@ -2,10 +2,14 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
 import { requireAuth } from '../auth/middleware';
+import { canAccessClassroom, canAccessQuiz, ownerClause, sessionParam } from '../services/access';
 import http from 'http';
 import { getOrCreateActiveSession, submitAnswers, getTimerStateForSession, loadTimerSettings } from '../socket/sessionHandler';
 
 const router = Router();
+
+// Mọi route có :id đều phải thuộc về tài khoản đang đăng nhập (admin: tất cả)
+router.param('id', sessionParam);
 
 // GET /api/sessions - Danh sách phiên
 router.get('/', (req: Request, res: Response) => {
@@ -22,10 +26,20 @@ router.get('/', (req: Request, res: Response) => {
       JOIN quizzes q ON s.quiz_id = q.id
     `;
     const params: any[] = [];
+    const conditions: string[] = [];
 
     if (status) {
-      query += ` WHERE s.status = ?`;
+      conditions.push('s.status = ?');
       params.push(status);
+    }
+    // Giáo viên chỉ thấy phiên của mình, admin thấy tất cả
+    const own = ownerClause(req.user, 's');
+    if (own.sql) {
+      conditions.push(own.sql);
+      params.push(...own.params);
+    }
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
     }
 
     query += ` ORDER BY s.created_at DESC`;
@@ -80,12 +94,17 @@ router.post('/', requireAuth, (req: Request, res: Response) => {
       return res.status(400).json({ error: 'classroom_id and quiz_id are required' });
     }
 
+    // Chỉ được tạo phiên từ lớp và bộ đề của chính mình (admin: bất kỳ)
+    if (!canAccessClassroom(req.user, String(classroom_id)) || !canAccessQuiz(req.user, String(quiz_id))) {
+      return res.status(404).json({ error: 'Không tìm thấy lớp học hoặc bộ đề' });
+    }
+
     const db = getDB();
     const id = uuidv4();
     db.prepare(`
-      INSERT INTO exam_sessions (id, classroom_id, quiz_id, status, current_question_order)
-      VALUES (?, ?, ?, 'WAITING', 0)
-    `).run(id, classroom_id, quiz_id);
+      INSERT INTO exam_sessions (id, classroom_id, quiz_id, status, current_question_order, owner_id)
+      VALUES (?, ?, ?, 'WAITING', 0, ?)
+    `).run(id, classroom_id, quiz_id, req.user!.id);
 
     const created = db.prepare(`
       SELECT s.*, c.name as classroom_name, q.title as quiz_title

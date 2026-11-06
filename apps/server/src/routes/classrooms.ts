@@ -2,12 +2,16 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
 import { deleteClassroom } from '../services/cascade';
+import { classroomParam, ownerClause } from '../services/access';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
 const router = Router();
+
+// Mọi route có :id đều phải thuộc về tài khoản đang đăng nhập (admin: tất cả)
+router.param('id', classroomParam);
 
 const CARD_SCRIPT = path.resolve(__dirname, '../../../../scripts/generate-aruco-cards.py');
 const PYTHON_BIN = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
@@ -27,7 +31,7 @@ router.get('/:id/cards/pdf', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Lớp chưa có học sinh nào để in thẻ' });
     }
 
-    const outPath = path.join(os.tmpdir(), `pickball_cards_${uuidv4()}.pdf`);
+    const outPath = path.join(os.tmpdir(), `lbhouse_cards_${uuidv4()}.pdf`);
     const child = spawn(PYTHON_BIN, [CARD_SCRIPT, '--input', '-', '--output', outPath], {
       env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
     });
@@ -57,7 +61,10 @@ router.get('/:id/cards/pdf', (req: Request, res: Response) => {
 router.get('/', (req: Request, res: Response) => {
   try {
     const db = getDB();
-    const classrooms = db.prepare('SELECT * FROM classrooms ORDER BY created_at DESC').all();
+    const own = ownerClause(req.user, 'c');
+    const classrooms = db
+      .prepare(`SELECT c.* FROM classrooms c ${own.sql ? 'WHERE ' + own.sql : ''} ORDER BY c.created_at DESC`)
+      .all(...own.params);
     res.json(classrooms);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -88,7 +95,7 @@ router.post('/', (req: Request, res: Response) => {
     }
     const db = getDB();
     const id = uuidv4();
-    db.prepare('INSERT INTO classrooms (id, name) VALUES (?, ?)').run(id, name.trim());
+    db.prepare('INSERT INTO classrooms (id, name, owner_id) VALUES (?, ?, ?)').run(id, name.trim(), req.user!.id);
     const newClassroom = db.prepare('SELECT * FROM classrooms WHERE id = ?').get(id);
     res.status(201).json(newClassroom);
   } catch (error: any) {

@@ -1,6 +1,7 @@
 ﻿"""
-Kiểm tra và quét thẻ ArUco qua Webcam máy tính, đồng bộ trực tiếp với Server Pickball.
+Kiểm tra và quét thẻ ArUco qua Webcam máy tính, đồng bộ trực tiếp với Server LB HOUSE.
 Chạy: python scripts/test-camera.py
+Cần đăng nhập: đặt biến môi trường LBHOUSE_TOKEN = token đăng nhập (lấy trong localStorage "lbhouse_token" của trình duyệt)
 Nhấn 'q' để thoát.
 """
 
@@ -9,12 +10,14 @@ import numpy as np
 import urllib.request
 import json
 import time
+import os
 
 SERVER_URL = "http://localhost:3001"
+AUTH_HEADERS = {"Authorization": "Bearer " + os.environ.get("LBHOUSE_TOKEN", "")}
 
 def get_active_session():
     try:
-        req = urllib.request.Request(f"{SERVER_URL}/api/sessions")
+        req = urllib.request.Request(f"{SERVER_URL}/api/sessions", headers=AUTH_HEADERS)
         with urllib.request.urlopen(req, timeout=2) as resp:
             sessions = json.loads(resp.read().decode('utf-8'))
             for s in sessions:
@@ -30,7 +33,7 @@ def submit_answer(session_id, card_id, answer):
         req = urllib.request.Request(
             f"{SERVER_URL}/api/sessions/{session_id}/submit-card",
             data=data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json", **AUTH_HEADERS}
         )
         with urllib.request.urlopen(req, timeout=1) as resp:
             return json.loads(resp.read().decode('utf-8'))
@@ -124,10 +127,10 @@ def test_camera():
         cv2.rectangle(frame, (0, 0), (w, 38), (15, 23, 42), -1)
         count_detected = len(ids) if ids is not None else 0
         session_text = f"Phien: {active_session['classroom_name']}" if active_session else "Chua co phien ACTIVE"
-        cv2.putText(frame, f"Pickball Live Sync | {session_text} | Da quet: {count_detected} | Nhan 'q' thoat",
+        cv2.putText(frame, f"LB HOUSE Live Sync | {session_text} | Da quet: {count_detected} | Nhan 'q' thoat",
                     (12, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 255, 255), 1)
 
-        cv2.imshow("Pickball ArUco Live Sync", frame)
+        cv2.imshow("LB HOUSE ArUco Live Sync", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 

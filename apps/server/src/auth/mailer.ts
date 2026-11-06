@@ -22,7 +22,7 @@ export async function sendMail(to: string, subject: string, text: string): Promi
   });
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@pickball.local',
+    from: process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@lbhouse.local',
     to,
     subject,
     text,

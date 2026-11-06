@@ -2,20 +2,26 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
 import { deleteQuiz } from '../services/cascade';
+import { ownerClause, quizParam } from '../services/access';
 
 const router = Router();
+
+// Mọi route có :id đều phải thuộc về tài khoản đang đăng nhập (admin: tất cả)
+router.param('id', quizParam);
 
 // GET /api/quizzes - Danh sách đề
 router.get('/', (req: Request, res: Response) => {
   try {
     const db = getDB();
+    const own = ownerClause(req.user, 'q');
     const quizzes = db.prepare(`
       SELECT q.*, COUNT(qu.id) as question_count
       FROM quizzes q
       LEFT JOIN questions qu ON q.id = qu.quiz_id
+      ${own.sql ? 'WHERE ' + own.sql : ''}
       GROUP BY q.id
       ORDER BY q.created_at DESC
-    `).all();
+    `).all(...own.params);
     res.json(quizzes);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -48,7 +54,7 @@ router.post('/', (req: Request, res: Response) => {
     }
     const db = getDB();
     const id = uuidv4();
-    db.prepare('INSERT INTO quizzes (id, title) VALUES (?, ?)').run(id, title.trim());
+    db.prepare('INSERT INTO quizzes (id, title, owner_id) VALUES (?, ?, ?)').run(id, title.trim(), req.user!.id);
     const newQuiz = db.prepare('SELECT * FROM quizzes WHERE id = ?').get(id);
     res.status(201).json(newQuiz);
   } catch (error: any) {

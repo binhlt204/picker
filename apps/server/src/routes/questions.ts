@@ -2,8 +2,13 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
 import { deleteQuestion } from '../services/cascade';
+import { questionParam, quizParam } from '../services/access';
 
 const router = Router();
+
+// :quizId = bộ đề, :id = câu hỏi — đều phải thuộc về tài khoản đang đăng nhập (admin: tất cả)
+router.param('quizId', quizParam);
+router.param('id', questionParam);
 
 // GET /api/quizzes/:quizId/questions - Danh sách câu hỏi trong đề
 router.get('/quizzes/:quizId/questions', (req: Request, res: Response) => {

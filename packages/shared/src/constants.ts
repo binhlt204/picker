@@ -8,11 +8,13 @@ export const SOCKET_EVENTS = {
   START_SESSION: 'start_session',
   NEXT_QUESTION: 'next_question',
   LOCK_QUESTION: 'lock_question',
+  UNLOCK_QUESTION: 'unlock_question', // mở khóa lại câu đã khóa (giữ nguyên các bài đã nộp)
   END_SESSION: 'end_session',
 
   // Question flow (Server → All)
   QUESTION_STARTED: 'question_started',
   QUESTION_LOCKED: 'question_locked',
+  QUESTION_UNLOCKED: 'question_unlocked', // câu được mở khóa lại, kèm đồng hồ mới
   SESSION_ENDED: 'session_ended',
 
   // Scanning (Mobile → Server → Projector)

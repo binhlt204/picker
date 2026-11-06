@@ -18,7 +18,7 @@ const router = Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BCRYPT_ROUNDS = 10;
 // Dùng để so sánh giả khi email không tồn tại, tránh lộ thông tin qua thời gian phản hồi
-const DUMMY_HASH = bcrypt.hashSync('pickball-dummy-password', BCRYPT_ROUNDS);
+const DUMMY_HASH = bcrypt.hashSync('lbhouse-dummy-password', BCRYPT_ROUNDS);
 
 function normalizeEmail(v: unknown): string {
   return String(v ?? '').trim().toLowerCase();
@@ -66,6 +66,12 @@ router.post('/register', async (req: Request, res: Response) => {
       db.prepare(
         'INSERT INTO users (id, email, full_name, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?)'
       ).run(id, email, fullName, hash, role, status);
+      // Tài khoản admin đầu tiên nhận luôn toàn bộ dữ liệu có sẵn từ trước khi có tài khoản (chưa có chủ)
+      if (isFirst) {
+        for (const table of ['classrooms', 'quizzes', 'exam_sessions']) {
+          db.prepare(`UPDATE ${table} SET owner_id = ? WHERE owner_id IS NULL`).run(id);
+        }
+      }
       return { id, email, full_name: fullName, role, status };
     })();
 
@@ -150,8 +156,8 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       try {
         await sendMail(
           user.email,
-          'Đặt lại mật khẩu Pickball',
-          `Xin chào ${user.full_name},\n\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu tài khoản Pickball.\n` +
+          'Đặt lại mật khẩu LB HOUSE',
+          `Xin chào ${user.full_name},\n\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu tài khoản LB HOUSE.\n` +
             `Mở link sau để đặt mật khẩu mới (hiệu lực ${RESET_TOKEN_TTL_MINUTES} phút, dùng 1 lần):\n\n${link}\n\n` +
             'Nếu không phải bạn yêu cầu, hãy bỏ qua email này.'
         );

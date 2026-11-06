@@ -2,7 +2,21 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../data/pickball.db');
+const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../data/lbhouse.db');
+
+/**
+ * Bản cài cũ lưu dữ liệu ở file có tên khác. Lần chạy đầu sau khi đổi tên, nếu chưa có file mới
+ * thì SAO CHÉP dữ liệu cũ sang (giữ nguyên file cũ làm bản sao lưu) để không mất tài khoản/lớp/đề.
+ */
+function migrateLegacyDbFile() {
+  if (process.env.DATABASE_PATH || fs.existsSync(DB_PATH)) return;
+  const legacy = path.join(path.dirname(DB_PATH), 'pickball.db');
+  if (!fs.existsSync(legacy)) return;
+  for (const suffix of ['', '-wal', '-shm']) {
+    if (fs.existsSync(legacy + suffix)) fs.copyFileSync(legacy + suffix, DB_PATH + suffix);
+  }
+  console.log('📦 Đã sao chép dữ liệu từ file cũ sang:', DB_PATH);
+}
 
 let db: Database.Database;
 
@@ -13,6 +27,7 @@ export function getDB(): Database.Database {
       fs.mkdirSync(dir, { recursive: true });
     }
 
+    migrateLegacyDbFile();
     db = new Database(DB_PATH);
     db.pragma('journal_mode = WAL');       // Performance tốt hơn
     db.pragma('foreign_keys = ON');        // Bật foreign key constraint
@@ -113,6 +128,17 @@ function initializeDatabase() {
   addColumnIfMissing('exam_sessions', 'timer_enabled', 'INTEGER NOT NULL DEFAULT 1');
   addColumnIfMissing('exam_sessions', 'time_limit_all', 'INTEGER');
   addColumnIfMissing('exam_sessions', 'question_times', 'TEXT');
+
+  // Migration: chủ sở hữu dữ liệu. Mỗi lớp / bộ đề / phiên thi thuộc về 1 tài khoản (users.id);
+  // giáo viên chỉ thấy dữ liệu của mình, admin thấy tất cả. Dữ liệu cũ (NULL) chỉ admin thấy.
+  addColumnIfMissing('classrooms', 'owner_id', 'TEXT');
+  addColumnIfMissing('quizzes', 'owner_id', 'TEXT');
+  addColumnIfMissing('exam_sessions', 'owner_id', 'TEXT');
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_classrooms_owner ON classrooms(owner_id);
+    CREATE INDEX IF NOT EXISTS idx_quizzes_owner ON quizzes(owner_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_owner ON exam_sessions(owner_id);
+  `);
 
   console.log('✅ Database initialized at:', DB_PATH);
 }

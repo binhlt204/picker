@@ -1,8 +1,12 @@
 ﻿import { Server, Socket } from 'socket.io';
 import { getDB } from '../database';
 import { v4 as uuidv4 } from 'uuid';
-import { SOCKET_EVENTS } from '@pickball/shared';
-import type { TimerSettings, TimerState } from '@pickball/shared';
+import { SOCKET_EVENTS } from '@lbhouse/shared';
+import type { TimerSettings, TimerState } from '@lbhouse/shared';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../auth/config';
+import { findUserById } from '../auth/middleware';
+import { canAccessSession } from '../services/access';
 
 export interface ActiveSession {
   sessionId: string;
@@ -213,6 +217,31 @@ function lockQuestion(sessionId: string) {
   console.log(`🔒 Question locked in session ${sessionId}`);
 }
 
+/**
+ * Mở khóa lại câu đã khóa: giữ nguyên các bài đã nộp, cho quét tiếp, và đếm giờ lại từ đầu theo
+ * cài đặt hiện tại (hoặc không giới hạn nếu đang tắt đếm giờ). Không áp dụng cho phiên đã kết thúc.
+ */
+function unlockQuestion(sessionId: string): boolean {
+  const session = activeSessions.get(sessionId);
+  if (!session || !session.isLocked || !session.currentQuestionId) return false;
+
+  const db = getDB();
+  const exam = db.prepare('SELECT status FROM exam_sessions WHERE id = ?').get(sessionId) as { status: string } | undefined;
+  if (!exam || exam.status === 'COMPLETED') return false;
+  const question = db.prepare('SELECT id, time_limit FROM questions WHERE id = ?').get(session.currentQuestionId) as any;
+  if (!question) return false;
+
+  session.isLocked = false;
+  startCountdown(session, effectiveTimeLimit(loadTimerSettings(sessionId), question));
+
+  ioInstance?.to(`session:${sessionId}`).emit(SOCKET_EVENTS.QUESTION_UNLOCKED, {
+    questionId: session.currentQuestionId,
+    ...timerState(session),
+  });
+  console.log(`🔓 Question unlocked in session ${sessionId}`);
+  return true;
+}
+
 function questionStartedPayload(session: ActiveSession, question: any, totalQuestions: number) {
   return {
     questionId: question.id,
@@ -280,20 +309,50 @@ function parseTime(v: unknown): number | null | undefined {
   return n;
 }
 
+/** Kiểm tra tài khoản của socket (đọc lại DB mỗi lần để khóa tài khoản có hiệu lực ngay) có quyền với phiên thi này không. */
+function authorize(socket: Socket, sessionId: unknown): string | null {
+  const id = typeof sessionId === 'string' ? sessionId : '';
+  const user = socket.data.userId ? findUserById(socket.data.userId) : undefined;
+  if (!id || !user || user.status !== 'active' || !canAccessSession(user, id)) {
+    socket.emit(SOCKET_EVENTS.ERROR, { message: 'Bạn không có quyền với phiên thi này' });
+    return null;
+  }
+  return id;
+}
+
 export function setupSocketHandlers(io: Server) {
   ioInstance = io;
+
+  // Bắt buộc đăng nhập: client gửi JWT qua handshake.auth.token (web và app điện thoại dùng chung token)
+  io.use((socket, next) => {
+    const token = String(socket.handshake.auth?.token || '');
+    if (!token) return next(new Error('UNAUTHENTICATED'));
+    try {
+      const payload = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+      const user = payload.sub ? findUserById(String(payload.sub)) : undefined;
+      if (!user || user.status !== 'active') return next(new Error('UNAUTHENTICATED'));
+      socket.data.userId = user.id;
+      next();
+    } catch {
+      next(new Error('UNAUTHENTICATED'));
+    }
+  });
 
   io.on('connection', (socket: Socket) => {
     console.log(`📱 Client connected: ${socket.id}`);
 
     // === Tham gia room ===
-    socket.on(SOCKET_EVENTS.JOIN_AS_PROJECTOR, ({ sessionId }) => {
+    socket.on(SOCKET_EVENTS.JOIN_AS_PROJECTOR, (payload) => {
+      const sessionId = authorize(socket, payload?.sessionId);
+      if (!sessionId) return;
       socket.join(`session:${sessionId}`);
       console.log(`🖥️  Projector joined session: ${sessionId}`);
       sendCurrentState(socket, sessionId, true);
     });
 
-    socket.on(SOCKET_EVENTS.JOIN_AS_SCANNER, ({ sessionId }) => {
+    socket.on(SOCKET_EVENTS.JOIN_AS_SCANNER, (payload) => {
+      const sessionId = authorize(socket, payload?.sessionId);
+      if (!sessionId) return;
       socket.join(`session:${sessionId}`);
       console.log(`📷 Scanner joined session: ${sessionId}`);
       sendCurrentState(socket, sessionId, false);
@@ -301,12 +360,18 @@ export function setupSocketHandlers(io: Server) {
 
     // === Chuyển câu hỏi ===
     // timeLimit do client gửi lên được bỏ qua: server tự tính theo cài đặt hẹn giờ của phiên.
-    socket.on(SOCKET_EVENTS.NEXT_QUESTION, ({ sessionId, questionId }) => {
+    socket.on(SOCKET_EVENTS.NEXT_QUESTION, (payload) => {
+      const sessionId = authorize(socket, payload?.sessionId);
+      if (!sessionId) return;
+      const questionId = payload?.questionId;
       const db = getDB();
 
-      const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(questionId) as any;
+      // Câu hỏi phải thuộc đúng bộ đề của phiên thi này
+      const question = db
+        .prepare('SELECT q.* FROM questions q JOIN exam_sessions s ON s.quiz_id = q.quiz_id WHERE q.id = ? AND s.id = ?')
+        .get(questionId, sessionId) as any;
       if (!question) {
-        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Question not found' });
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Không tìm thấy câu hỏi trong bộ đề của phiên này' });
         return;
       }
 
@@ -345,23 +410,34 @@ export function setupSocketHandlers(io: Server) {
     });
 
     // === Nhận kết quả quét (từ mobile camera hoặc web scanner) ===
-    socket.on(SOCKET_EVENTS.SUBMIT_SCANNED_BATCH, ({ sessionId, records }) => {
-      submitAnswers(sessionId, records);
+    socket.on(SOCKET_EVENTS.SUBMIT_SCANNED_BATCH, (payload) => {
+      const sessionId = authorize(socket, payload?.sessionId);
+      if (!sessionId || !Array.isArray(payload?.records)) return;
+      submitAnswers(sessionId, payload.records);
     });
 
     // === Khóa câu hỏi (GV bấm Khóa; hết giờ thì server tự khóa) ===
-    socket.on(SOCKET_EVENTS.LOCK_QUESTION, ({ sessionId }) => {
-      lockQuestion(sessionId);
+    socket.on(SOCKET_EVENTS.LOCK_QUESTION, (payload) => {
+      const sessionId = authorize(socket, payload?.sessionId);
+      if (sessionId) lockQuestion(sessionId);
+    });
+
+    // === Mở khóa lại câu hỏi đã khóa (giữ bài đã nộp, đếm giờ lại) ===
+    socket.on(SOCKET_EVENTS.UNLOCK_QUESTION, (payload) => {
+      const sessionId = authorize(socket, payload?.sessionId);
+      if (!sessionId) return;
+      if (!unlockQuestion(sessionId)) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Không mở khóa được: câu hỏi chưa bị khóa hoặc phiên đã kết thúc' });
+      }
     });
 
     // === Đổi cài đặt hẹn giờ (từ máy chiếu hoặc điện thoại) ===
     // payload: { sessionId, timerEnabled?, timeLimitAll? (số | null để bỏ), questionId?, questionTime? (số | null để bỏ) }
     socket.on(SOCKET_EVENTS.UPDATE_TIMER_SETTINGS, (payload: any) => {
       try {
-        const sessionId = String(payload?.sessionId || '');
+        const sessionId = authorize(socket, payload?.sessionId);
+        if (!sessionId) return;
         const db = getDB();
-        const exists = db.prepare('SELECT id FROM exam_sessions WHERE id = ?').get(sessionId);
-        if (!exists) throw new Error('Không tìm thấy phiên thi');
 
         const settings = loadTimerSettings(sessionId);
         const wasEnabled = settings.timerEnabled;
@@ -405,7 +481,9 @@ export function setupSocketHandlers(io: Server) {
     });
 
     // === Kết thúc phiên ===
-    socket.on(SOCKET_EVENTS.END_SESSION, ({ sessionId }) => {
+    socket.on(SOCKET_EVENTS.END_SESSION, (payload) => {
+      const sessionId = authorize(socket, payload?.sessionId);
+      if (!sessionId) return;
       const db = getDB();
       db.prepare("UPDATE exam_sessions SET status = 'COMPLETED' WHERE id = ?").run(sessionId);
       const session = activeSessions.get(sessionId);

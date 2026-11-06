@@ -10,7 +10,7 @@ const router = Router();
 router.get('/overview', (req: Request, res: Response) => {
   try {
     const db = getDB();
-    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/pickball.db');
+    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/lbhouse.db');
 
     let dbSizeBytes = 0;
     try {
@@ -88,9 +88,12 @@ router.post('/reset-seed', (req: Request, res: Response) => {
     const transaction = db.transaction(() => {
       // 1. Tạo lớp học
       const classId = uuidv4();
-      db.prepare('INSERT INTO classrooms (id, name) VALUES (?, ?)').run(
+      // Dữ liệu mẫu thuộc về admin đang thao tác
+      const ownerId = req.user!.id;
+      db.prepare('INSERT INTO classrooms (id, name, owner_id) VALUES (?, ?, ?)').run(
         classId,
-        'Lớp 10A1 - Năm học 2026'
+        'Lớp 10A1 - Năm học 2026',
+        ownerId
       );
 
       // 2. Tạo 15 học sinh
@@ -107,9 +110,10 @@ router.post('/reset-seed', (req: Request, res: Response) => {
 
       // 3. Tạo đề thi
       const quizId = uuidv4();
-      db.prepare('INSERT INTO quizzes (id, title) VALUES (?, ?)').run(
+      db.prepare('INSERT INTO quizzes (id, title, owner_id) VALUES (?, ?, ?)').run(
         quizId,
-        'Khảo sát Toán học & Khoa học Tự nhiên'
+        'Khảo sát Toán học & Khoa học Tự nhiên',
+        ownerId
       );
 
       // 4. Tạo 5 câu hỏi
@@ -152,8 +156,8 @@ router.post('/reset-seed', (req: Request, res: Response) => {
 
       // 5. Tạo 1 phiên thi mẫu
       const sessionId = uuidv4();
-      db.prepare("INSERT INTO exam_sessions (id, classroom_id, quiz_id, status, current_question_order) VALUES (?, ?, ?, 'WAITING', 0)").run(
-        sessionId, classId, quizId
+      db.prepare("INSERT INTO exam_sessions (id, classroom_id, quiz_id, status, current_question_order, owner_id) VALUES (?, ?, ?, 'WAITING', 0, ?)").run(
+        sessionId, classId, quizId, ownerId
       );
     });
 

@@ -7,7 +7,7 @@ Bố cục thẻ:
   • Mã ArUco lớn ở giữa.
   • Chữ A (trên), B (phải), C (dưới), D (trái): mỗi chữ quay sao cho đọc xuôi khi cạnh đó hướng lên.
   • Số thẻ ở 4 góc, góc nào cũng đọc xuôi theo hướng tương ứng.
-  • Chữ thương hiệu "pickerball" nhỏ ở góc trên bên trái.
+  • Chữ thương hiệu "LB HOUSE" nhỏ ở góc trên bên trái.
   • Họ tên học sinh và tên lớp in nhỏ dọc theo cạnh phải.
 
 Chạy:
@@ -30,7 +30,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-BRAND_TEXT = "pickerball"
+BRAND_TEXT = "LB HOUSE"
 
 # ===== Font hỗ trợ tiếng Việt =====
 font_regular = "Helvetica"

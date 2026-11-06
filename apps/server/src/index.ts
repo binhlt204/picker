@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
 import { getDB } from './database';
 import { setupSocketHandlers } from './socket/sessionHandler';
 import { requireAuth, requireAdmin } from './auth/middleware';
@@ -53,12 +54,13 @@ app.use('/api', questionRoutes);
 app.use('/api/admin/resources', requireAuth, requireAdmin, adminResourceRoutes);
 app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
 
-// --- Phiên thi: app điện thoại quét thẻ KHÔNG đăng nhập nên giữ mở các API nó dùng
-//     (danh sách/chi tiết phiên, câu hiện tại, quét ảnh). Phần ghi/xem kết quả đã khóa trong routes/sessions.ts ---
-app.use('/api/sessions', sessionRoutes);
+// --- Phiên thi (web + app điện thoại đều đăng nhập): mỗi tài khoản chỉ truy cập phiên của mình ---
+app.use('/api/sessions', requireAuth, sessionRoutes);
 app.use('/api', exportRoutes);
 
-app.get('/download-app', (req, res) => res.download('D:/pickball/pickball-app.apk'));
+// File APK Android để tải về (đặt tại thư mục gốc dự án, hoặc chỉ định bằng biến APK_PATH)
+const APK_PATH = process.env.APK_PATH || path.resolve(__dirname, '../../../lbhouse-app.apk');
+app.get('/download-app', (req, res) => res.download(APK_PATH));
 
 // Health check
 app.get('/api/health', (req, res) => {

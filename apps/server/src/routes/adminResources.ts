@@ -44,8 +44,8 @@ const RESOURCES: Record<string, ResourceConfig> = {
   },
   classrooms: {
     table: 'classrooms',
-    columns: ['id', 'name', 'created_at'],
-    writable: ['name'],
+    columns: ['id', 'name', 'owner_id', 'created_at'],
+    writable: ['name', 'owner_id'],
     required: ['name'],
     searchable: ['name'],
     defaultSort: 'created_at',
@@ -63,8 +63,8 @@ const RESOURCES: Record<string, ResourceConfig> = {
   },
   quizzes: {
     table: 'quizzes',
-    columns: ['id', 'title', 'created_at'],
-    writable: ['title'],
+    columns: ['id', 'title', 'owner_id', 'created_at'],
+    writable: ['title', 'owner_id'],
     required: ['title'],
     searchable: ['title'],
     defaultSort: 'created_at',
@@ -83,8 +83,8 @@ const RESOURCES: Record<string, ResourceConfig> = {
   },
   sessions: {
     table: 'exam_sessions',
-    columns: ['id', 'classroom_id', 'quiz_id', 'status', 'current_question_order', 'created_at'],
-    writable: ['classroom_id', 'quiz_id', 'status', 'current_question_order'],
+    columns: ['id', 'classroom_id', 'quiz_id', 'status', 'current_question_order', 'owner_id', 'created_at'],
+    writable: ['classroom_id', 'quiz_id', 'status', 'current_question_order', 'owner_id'],
     required: ['classroom_id', 'quiz_id'],
     searchable: [],
     defaultSort: 'created_at',
@@ -159,6 +159,13 @@ function sanitize(cfg: ResourceConfig, body: any, requireAll: boolean): { values
   }
   for (const [col, v] of Object.entries(values)) {
     if (typeof v === 'string' && v === '' && cfg.required.includes(col)) return { values, error: `"${col}" không được để trống` };
+  }
+  if ('owner_id' in values) {
+    if (values.owner_id === '' || values.owner_id === null) {
+      values.owner_id = null;
+    } else if (!getDB().prepare('SELECT id FROM users WHERE id = ?').get(values.owner_id)) {
+      return { values, error: 'Chủ sở hữu (owner_id) không phải là tài khoản có thật' };
+    }
   }
   if (values.card_id !== undefined && (values.card_id < 1 || values.card_id > 50)) {
     return { values, error: 'Số thẻ phải từ 1 đến 50' };
@@ -281,6 +288,10 @@ router.post('/:resource', async (req: Request, res: Response) => {
       values.password_hash = await bcrypt.hash(pw, 10);
       values.role = values.role || 'teacher';
       values.status = values.status || 'active';
+    }
+    // Dữ liệu admin tạo trong dashboard mặc định thuộc về chính admin (có thể đổi chủ ở form sửa)
+    if (['classrooms', 'quizzes', 'exam_sessions'].includes(cfg.table) && values.owner_id === undefined) {
+      values.owner_id = req.user!.id;
     }
     if (cfg.table === 'questions') {
       values.time_limit = values.time_limit ?? 30;

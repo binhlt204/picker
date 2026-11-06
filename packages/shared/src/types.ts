@@ -82,6 +82,11 @@ export interface TimerState {
   serverNow: number; // giờ server lúc gửi (ms) để client bù chênh lệch đồng hồ
 }
 
+/** Server -> tất cả: câu hỏi vừa được mở khóa lại. */
+export interface QuestionUnlockedPayload extends TimerState {
+  questionId: string;
+}
+
 export interface TimerSettingsPayload {
   settings: TimerSettings;
   current: (TimerState & { questionId: string }) | null;

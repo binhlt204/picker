@@ -2,8 +2,11 @@ import { Router, Request, Response } from 'express';
 import ExcelJS from 'exceljs';
 import { getDB } from '../database';
 import { requireAuth } from '../auth/middleware';
+import { sessionParam } from '../services/access';
 
 const router = Router();
+
+router.param('id', sessionParam);
 
 router.get('/sessions/:id/results/export', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -44,7 +47,7 @@ router.get('/sessions/:id/results/export', requireAuth, async (req: Request, res
 
     // Create Excel Workbook
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Pickball System';
+    workbook.creator = 'LB HOUSE System';
     workbook.created = new Date();
 
     const worksheet = workbook.addWorksheet('Bảng điểm');

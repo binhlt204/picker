@@ -2,8 +2,13 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../database';
 import { deleteStudent } from '../services/cascade';
+import { classroomParam, studentParam } from '../services/access';
 
 const router = Router();
+
+// :classId = lớp học, :id = học sinh — đều phải thuộc về tài khoản đang đăng nhập (admin: tất cả)
+router.param('classId', classroomParam);
+router.param('id', studentParam);
 
 // Hàm so sánh tên theo chuẩn tiếng Việt: Tên trước, Họ và Đệm sau
 export function compareVietnameseNames(nameA: string, nameB: string): number {
