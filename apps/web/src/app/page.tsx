@@ -68,7 +68,7 @@ export default function DashboardPage() {
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold mb-4">
             🚀 Công nghệ thị giác máy tính ArUco Realtime
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-bold text-slate-100 tracking-tight leading-tight">
             Trắc Nghiệm Bằng Thẻ Giấy <br />
             <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
               Chấm Điểm Tức Thì Trên Máy Chiếu
@@ -110,7 +110,7 @@ export default function DashboardPage() {
         <Card padding="lg" className="lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-white">Phiên Kiểm Tra Gần Đây</h2>
+              <h2 className="text-xl font-bold text-slate-100">Phiên Kiểm Tra Gần Đây</h2>
               <p className="text-sm text-slate-400">Trực tiếp mở máy chiếu hoặc xem lại bảng điểm</p>
             </div>
             <Link
@@ -141,7 +141,7 @@ export default function DashboardPage() {
                 >
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-base text-white">{session.quiz_title}</span>
+                      <span className="font-bold text-base text-slate-100">{session.quiz_title}</span>
                       <Badge tone={session.status === 'COMPLETED' ? 'neutral' : 'success'}>
                         {session.status === 'COMPLETED' ? 'Đã hoàn thành' : 'Đang hoạt động'}
                       </Badge>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
         {/* How It Works Visual Stepper */}
         <Card padding="lg" className="flex flex-col justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white mb-2">Quy Trình 5 Bước</h2>
+            <h2 className="text-xl font-bold text-slate-100 mb-2">Quy Trình 5 Bước</h2>
             <p className="text-sm text-slate-400 mb-6">Cách vận hành hệ thống trắc nghiệm thẻ</p>
 
             <div className="space-y-4">
@@ -190,7 +190,7 @@ export default function DashboardPage() {
                     {i + 1}
                   </span>
                   <div>
-                    <h4 className="text-sm font-bold text-white">{step.title}</h4>
+                    <h4 className="text-sm font-bold text-slate-100">{step.title}</h4>
                     <p className="text-xs text-slate-400">{step.desc}</p>
                   </div>
                 </div>

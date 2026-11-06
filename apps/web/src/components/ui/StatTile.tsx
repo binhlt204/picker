@@ -28,10 +28,10 @@ export interface StatTileProps {
 export function StatTile({ label, value, icon, tone = 'default' }: StatTileProps) {
   return (
     <Card padding="md" className="flex flex-col gap-3">
-      {icon && <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${TONE_CHIP[tone]}`}>{icon}</div>}
+      {icon && <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base ${TONE_CHIP[tone]}`}>{icon}</div>}
       <div>
-        <div className="text-2xl font-black text-white font-mono">{value}</div>
-        <div className="text-xs text-slate-400 mt-0.5">{label}</div>
+        <div className="text-xl sm:text-2xl font-bold text-slate-100 font-mono truncate">{value}</div>
+        <div className="text-xs text-slate-400 mt-0.5 truncate">{label}</div>
       </div>
     </Card>
   );

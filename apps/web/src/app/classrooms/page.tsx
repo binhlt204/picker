@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { Switch } from '@/components/ui/Switch';
 
 interface Student {
@@ -218,18 +219,12 @@ export default function ClassroomsPage() {
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-            <FiUsers className="text-blue-500" />
-            <span>Quản Lý Lớp Học & Thẻ Học Sinh</span>
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Gán số thẻ cố định (1-50) tương ứng với từng học sinh trong lớp
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
+      <PageHeader
+        icon={<FiUsers />}
+        title="Lớp học & thẻ học sinh"
+        description="Gán số thẻ cố định (1-50) tương ứng với từng học sinh trong lớp"
+        actions={
+          <>
           {selectedClass && (
             <Button
               variant="secondary"
@@ -248,22 +243,23 @@ export default function ClassroomsPage() {
               title={`Tải PDF thẻ in theo danh sách học sinh lớp ${selectedClass.name}`}
             >
               <FiDownload />
-              <span>{downloadingCards ? 'Đang tạo PDF...' : `Tải Thẻ In Lớp ${selectedClass.name}`}</span>
+              <span>{downloadingCards ? 'Đang tạo PDF...' : 'Tải thẻ in'}</span>
             </Button>
           )}
 
           <Button size="sm" onClick={() => setIsCreateClassOpen(true)}>
             <FiPlus />
-            <span>Thêm Lớp Mới</span>
+            <span>Thêm lớp</span>
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Main Layout: Left = Class List, Right = Student Management */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Classes (4 cols) */}
         <div className="lg:col-span-4 space-y-3">
-          <h3 className="text-xs uppercase font-bold text-slate-400 tracking-wider px-1">
+          <h3 className="text-xs uppercase font-semibold text-slate-500 tracking-wide px-1">
             Danh Sách Lớp ({classrooms.length})
           </h3>
 
@@ -284,17 +280,17 @@ export default function ClassroomsPage() {
                   <div
                     key={c.id}
                     onClick={() => loadClassDetails(c.id)}
-                    className={`group p-4 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
+                    className={`group p-3.5 rounded-lg border transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                       isSelected
-                        ? 'bg-blue-600/15 border-blue-500/60 shadow-lg shadow-blue-500/10'
+                        ? 'bg-blue-600/10 border-blue-500/50'
                         : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
                     }`}
                   >
-                    <div>
-                      <h4 className={`text-base font-bold ${isSelected ? 'text-blue-400' : 'text-slate-200'}`}>
+                    <div className="min-w-0">
+                      <h4 className={`text-sm sm:text-base font-semibold truncate ${isSelected ? 'text-blue-400' : 'text-slate-200'}`}>
                         {c.name}
                       </h4>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-400 mt-0.5 truncate">
                         Ngày tạo: {c.created_at ? new Date(c.created_at).toLocaleDateString('vi-VN') : '—'}
                       </p>
                     </div>
@@ -304,7 +300,7 @@ export default function ClassroomsPage() {
                         e.stopPropagation();
                         handleDeleteClass(c.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
+                      className="shrink-0 lg:opacity-0 lg:group-hover:opacity-100 p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
                       title="Xóa lớp"
                     >
                       <FiTrash2 />
@@ -321,9 +317,9 @@ export default function ClassroomsPage() {
           {selectedClass ? (
             <div>
               {/* Class Header Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 mb-5 border-b border-slate-800">
                 <div>
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-semibold text-slate-100 flex flex-wrap items-center gap-2 break-words min-w-0">
                     <span>{selectedClass.name}</span>
                     <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-bold">
                       {selectedClass.students?.length || 0}/50 học sinh
@@ -334,7 +330,7 @@ export default function ClassroomsPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {selectedClass.students && selectedClass.students.length > 0 && (
                     <Button
                       variant="secondary"
@@ -381,18 +377,18 @@ export default function ClassroomsPage() {
                       key={student.id}
                       className="group flex items-center justify-between p-3 rounded-lg bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 transition"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="w-9 h-9 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-400 font-mono font-black text-sm flex items-center justify-center flex-shrink-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-9 h-9 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-400 font-mono font-bold text-sm flex items-center justify-center flex-shrink-0">
                           #{student.card_id.toString().padStart(2, '0')}
                         </span>
-                        <span className="text-sm font-semibold text-slate-200 truncate max-w-[140px]">
+                        <span className="text-sm font-medium text-slate-200 truncate min-w-0">
                           {student.full_name}
                         </span>
                       </div>
 
                       <button
                         onClick={() => handleDeleteStudent(student.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
+                        className="shrink-0 lg:opacity-0 lg:group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
                         title="Xóa học sinh"
                       >
                         <FiTrash2 className="text-xs" />
@@ -414,13 +410,13 @@ export default function ClassroomsPage() {
       <Modal open={isCreateClassOpen} onClose={() => setIsCreateClassOpen(false)} title="Tạo Lớp Học Mới">
         <form onSubmit={handleCreateClass} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tên lớp học</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">Tên lớp học</label>
             <input
               type="text"
               placeholder="Ví dụ: 10A1, 11 Chuyên Lý..."
               value={newClassName}
               onChange={(e) => setNewClassName(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
               autoFocus
               required
             />
@@ -440,20 +436,20 @@ export default function ClassroomsPage() {
       <Modal open={isAddStudentOpen} onClose={() => setIsAddStudentOpen(false)} title="Thêm Học Sinh">
         <form onSubmit={handleAddSingleStudent} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Họ và tên học sinh</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">Họ và tên học sinh</label>
             <input
               type="text"
               placeholder="Ví dụ: Nguyễn Văn An"
               value={newStudentName}
               onChange={(e) => setNewStudentName(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
               autoFocus
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mã số thẻ ArUco (1 - 50)</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">Mã số thẻ ArUco (1 - 50)</label>
             <input
               type="number"
               min="1"
@@ -461,7 +457,7 @@ export default function ClassroomsPage() {
               placeholder="Nhập số từ 1 đến 50"
               value={newStudentCard}
               onChange={(e) => setNewStudentCard(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
               required
             />
           </div>
@@ -492,7 +488,7 @@ export default function ClassroomsPage() {
               placeholder={`Nguyễn Văn An\nTrần Thị Bình\nLê Hoàng Cường\nPhạm Minh Dũng...\n(Hoặc dán có số: 1. Nguyễn Văn An, 2. Trần Thị Bình...)`}
               value={bulkNamesText}
               onChange={(e) => setBulkNamesText(e.target.value)}
-              className="w-full p-4 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-blue-500"
+              className="w-full p-4 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-blue-500"
               required
             />
           </div>

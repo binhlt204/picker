@@ -47,7 +47,7 @@ export default function ResultsPage() {
   if (!data || !data.session) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-        <h3 className="text-xl font-bold text-white mb-2">Không tìm thấy kết quả phiên</h3>
+        <h3 className="text-xl font-bold text-slate-100 mb-2">Không tìm thấy kết quả phiên</h3>
         <Link href="/sessions" className="text-blue-400 hover:underline text-sm">
           Quay lại danh sách phiên
         </Link>
@@ -64,11 +64,11 @@ export default function ResultsPage() {
         <div>
           <button
             onClick={() => router.push('/sessions')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white mb-2 transition"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-100 mb-2 transition"
           >
             <FiArrowLeft /> Quay lại danh sách phiên
           </button>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
             <FiAward className="text-blue-500" />
             <span>Kết Quả: {session.quiz_title}</span>
           </h1>
@@ -108,7 +108,7 @@ export default function ResultsPage() {
       {/* Detailed Scoreboard Table */}
       <Card padding="lg" className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
             <span>Bảng Điểm Chi Tiết Từng Học Sinh</span>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
               {students.length} học sinh
@@ -129,7 +129,7 @@ export default function ResultsPage() {
                   </th>
                 ))}
                 <th className="py-3 px-3 text-center w-28">Đúng/Tổng</th>
-                <th className="py-3 px-3 text-center w-28 text-white">Điểm</th>
+                <th className="py-3 px-3 text-center w-28 text-slate-100">Điểm</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-medium">
@@ -139,11 +139,11 @@ export default function ResultsPage() {
                     <span
                       className={`inline-flex items-center justify-center w-6 h-6 rounded-full font-bold text-xs ${
                         student.rank === 1
-                          ? 'bg-amber-400 text-slate-950 font-black'
+                          ? 'bg-amber-400 text-slate-950 font-bold'
                           : student.rank === 2
-                          ? 'bg-slate-300 text-slate-950 font-black'
+                          ? 'bg-slate-300 text-slate-950 font-bold'
                           : student.rank === 3
-                          ? 'bg-amber-700 text-white font-black'
+                          ? 'bg-amber-700 text-white font-bold'
                           : 'text-slate-400'
                       }`}
                     >
@@ -153,7 +153,7 @@ export default function ResultsPage() {
                   <td className="py-3 px-3 text-center font-mono font-bold text-blue-400 text-xs">
                     #{student.card_id.toString().padStart(2, '0')}
                   </td>
-                  <td className="py-3 px-4 text-white font-semibold">{student.full_name}</td>
+                  <td className="py-3 px-4 text-slate-100 font-semibold">{student.full_name}</td>
 
                   {/* Question Results */}
                   {questions.map((q: any) => {
@@ -182,9 +182,9 @@ export default function ResultsPage() {
                   })}
 
                   <td className="py-3 px-3 text-center font-mono text-xs">
-                    <span className="font-bold text-white">{student.correctCount}</span>/{student.totalQuestions}
+                    <span className="font-bold text-slate-100">{student.correctCount}</span>/{student.totalQuestions}
                   </td>
-                  <td className="py-3 px-3 text-center font-mono font-black text-base text-emerald-400">
+                  <td className="py-3 px-3 text-center font-mono font-bold text-base text-emerald-400">
                     {student.score}
                   </td>
                 </tr>

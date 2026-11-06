@@ -7,7 +7,7 @@ import type { RaThemeOptions } from 'react-admin';
  * và components/ui/*): cùng 1 màu thương hiệu xanh dương, cùng thang nền tối slate, để /admin
  * không còn là một "ứng dụng lạ" ghép vào sản phẩm.
  */
-export const pickballAdminTheme: RaThemeOptions = {
+export const lbHouseAdminTheme: RaThemeOptions = {
   ...defaultDarkTheme,
   palette: {
     ...defaultDarkTheme.palette,

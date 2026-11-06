@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { FiClock } from 'react-icons/fi';
-import type { TimerSettings } from '@pickball/shared';
+import type { TimerSettings } from '@lbhouse/shared';
 import type { TimerSettingsPatch } from '@/hooks/useSocket';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';

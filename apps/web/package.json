@@ -1,5 +1,5 @@
 {
-  "name": "@pickball/web",
+  "name": "@lbhouse/web",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -13,7 +13,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^9.5.0",
     "@mui/material": "^9.5.0",
-    "@pickball/shared": "*",
+    "@lbhouse/shared": "*",
     "axios": "^1.7.9",
     "next": "16.4.3",
     "ra-i18n-polyglot": "^5.15.5",

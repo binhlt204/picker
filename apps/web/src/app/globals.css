@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Pickball dùng duy nhất giao diện tối, không có chế độ sáng/toggle,
+/* LB HOUSE dùng duy nhất giao diện tối, không có chế độ sáng/toggle,
    nên các token ở đây chỉ phản ánh đúng 1 theme, không cần biến theo
    prefers-color-scheme. */
 @theme inline {

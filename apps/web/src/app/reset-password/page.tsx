@@ -45,7 +45,7 @@ function ResetForm() {
           <Alert type="error">Link đặt lại mật khẩu thiếu mã xác nhận. Hãy yêu cầu link mới.</Alert>
           <Link
             href="/forgot-password"
-            className="block w-full text-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-sm py-2.5 transition"
+            className="block w-full text-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold text-sm py-2.5 transition"
           >
             Yêu cầu link mới
           </Link>

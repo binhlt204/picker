@@ -54,7 +54,7 @@ export function AnswerOptions({ options, correctOption, distribution }: AnswerOp
             {/* Top row: Badge + Text */}
             <div className="flex items-start gap-4">
               <span
-                className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-md ${config.badgeBg}`}
+                className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-md ${config.badgeBg}`}
               >
                 {key}
               </span>

@@ -3,8 +3,8 @@ import React from 'react';
 const PADDING = {
   none: '',
   sm: 'p-4',
-  md: 'p-6',
-  lg: 'p-8',
+  md: 'p-4 sm:p-5',
+  lg: 'p-4 sm:p-6',
 } as const;
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -18,7 +18,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
  */
 export function Card({ padding = 'md', className = '', children, ...props }: CardProps) {
   return (
-    <div className={`rounded-2xl bg-slate-900 border border-slate-800 ${PADDING[padding]} ${className}`} {...props}>
+    <div className={`min-w-0 rounded-xl bg-slate-900 border border-slate-800 ${PADDING[padding]} ${className}`} {...props}>
       {children}
     </div>
   );

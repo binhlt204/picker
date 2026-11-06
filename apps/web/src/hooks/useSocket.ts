@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { SOCKET_EVENTS } from '@pickball/shared';
+import { SOCKET_EVENTS } from '@lbhouse/shared';
+import { getToken, setToken } from '@/lib/api';
 import type {
   QuestionStartedPayload,
   UpdateSubmittedPayload,
   QuestionLockedPayload,
+  QuestionUnlockedPayload,
   TimerSettings,
   TimerSettingsPayload,
   TimerState,
-} from '@pickball/shared';
+} from '@lbhouse/shared';
 
 /** Đồng hồ câu hiện tại, kèm độ lệch giữa đồng hồ server và máy này (ms). */
 export interface ClientTimer {
@@ -48,8 +50,10 @@ export function useSocket(sessionId: string) {
   useEffect(() => {
     if (!sessionId) return;
 
+    // Bắt buộc đăng nhập: gửi JWT trong handshake (cùng token với REST API)
     const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
+      auth: { token: getToken() || '' },
     });
     socketRef.current = socket;
 
@@ -60,6 +64,16 @@ export function useSocket(sessionId: string) {
 
     socket.on('disconnect', () => {
       setIsConnected(false);
+    });
+
+    // Token hết hạn / tài khoản bị khóa: xóa phiên và quay về trang đăng nhập
+    socket.on('connect_error', (err: Error) => {
+      setIsConnected(false);
+      if (err?.message === 'UNAUTHENTICATED') {
+        setToken(null);
+        socket.disconnect();
+        window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+      }
     });
 
     socket.on(SOCKET_EVENTS.QUESTION_STARTED, (data: QuestionStartedPayload) => {
@@ -81,6 +95,13 @@ export function useSocket(sessionId: string) {
       setIsLocked(true);
       setTimer((t) => ({ ...t, endsAt: null }));
       setLockData(data);
+    });
+
+    // Câu được mở khóa lại: giữ nguyên bài đã nộp, chạy lại đồng hồ theo endsAt mới của server
+    socket.on(SOCKET_EVENTS.QUESTION_UNLOCKED, (data: QuestionUnlockedPayload) => {
+      setIsLocked(false);
+      setLockData(null);
+      setTimer(toClientTimer(data));
     });
 
     // Cài đặt hẹn giờ thay đổi (từ máy chiếu hoặc điện thoại) -> cập nhật cả đồng hồ câu đang chạy
@@ -117,6 +138,11 @@ export function useSocket(sessionId: string) {
     socketRef.current?.emit(SOCKET_EVENTS.LOCK_QUESTION, { sessionId });
   }, [sessionId]);
 
+  const unlockQuestion = useCallback(() => {
+    setSocketError(null);
+    socketRef.current?.emit(SOCKET_EVENTS.UNLOCK_QUESTION, { sessionId });
+  }, [sessionId]);
+
   const updateTimerSettings = useCallback(
     (patch: TimerSettingsPatch) => {
       setSocketError(null);
@@ -141,6 +167,7 @@ export function useSocket(sessionId: string) {
     isSessionEnded,
     nextQuestion,
     lockQuestion,
+    unlockQuestion,
     endSession,
     timer,
     timerSettings,

@@ -9,7 +9,7 @@ import { CountdownTimer } from './CountdownTimer';
 import { AnswerOptions } from './AnswerOptions';
 import { StudentGrid } from './StudentGrid';
 import { ResultChart } from './ResultChart';
-import { FiMaximize, FiMinimize, FiCheckCircle, FiChevronRight, FiLock, FiHome, FiAward, FiClock } from 'react-icons/fi';
+import { FiMaximize, FiMinimize, FiCheckCircle, FiChevronRight, FiLock, FiUnlock, FiHome, FiAward, FiClock } from 'react-icons/fi';
 
 interface QuestionItem {
   id: string;
@@ -52,6 +52,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
     isSessionEnded,
     nextQuestion,
     lockQuestion,
+    unlockQuestion,
     endSession,
     timer: serverTimer,
     timerSettings,
@@ -103,7 +104,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
   // State: Waiting to Start
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen w-full bg-slate-950 text-white flex flex-col justify-between p-8 select-none">
+      <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-between p-8 select-none">
         <header className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <button
@@ -145,18 +146,18 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
           <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-4xl text-blue-400 shadow-2xl">
             🎯
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-100 mb-4 tracking-tight">
             Màn Hình Máy Chiếu Trực Tiếp
           </h1>
           <p className="text-lg text-slate-400 mb-8 leading-relaxed">
             Giáo viên mở ứng dụng trên điện thoại để quét mã thẻ ArUco của học sinh.<br />
-            Bộ đề gồm <span className="font-bold text-white">{questions.length} câu hỏi</span>.
+            Bộ đề gồm <span className="font-bold text-slate-100">{questions.length} câu hỏi</span>.
           </p>
 
           <button
             onClick={handleStart}
             disabled={questions.length === 0}
-            className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-2xl font-black transition hover:scale-105 active:scale-95 disabled:opacity-50"
+            className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-2xl font-bold transition hover:scale-105 active:scale-95 disabled:opacity-50"
           >
             <span>BẮT ĐẦU CÂU 1</span>
             <FiChevronRight className="text-2xl" />
@@ -164,7 +165,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
         </main>
 
         <footer className="text-center text-xs text-slate-500">
-          Pickball Realtime Paper Quiz System • Nhấn F11 để bật/tắt toàn màn hình
+          LB HOUSE Realtime Paper Quiz System • Nhấn F11 để bật/tắt toàn màn hình
         </footer>
       <TimerSettingsPanel
         open={showTimerSettings}
@@ -184,11 +185,11 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
   const progressPct = studentCount > 0 ? Math.min(100, Math.round((submittedCardIds.length / studentCount) * 100)) : 0;
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-white flex flex-col justify-between p-6 select-none overflow-x-hidden">
+    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-between p-6 select-none overflow-x-hidden">
       {/* Top Header */}
-      <header className="flex justify-between items-center gap-4 pb-3 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <span className="px-3.5 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-400 font-black text-base tracking-wide">
+      <header className="flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-slate-800">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-400 font-bold text-base tracking-wide">
             CÂU {currentQuestion.questionOrder} / {currentQuestion.totalQuestions}
           </span>
           <span className="hidden sm:inline text-sm font-medium text-slate-400 truncate max-w-md">
@@ -196,7 +197,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <CountdownTimer
             timeLeft={isLocked ? 0 : secondsLeft}
             total={serverTimer.timeLimit}
@@ -220,6 +221,12 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
           </button>
         </div>
       </header>
+
+      {socketError && (
+        <div role="alert" className="mt-3 px-4 py-2 rounded-lg bg-rose-500/10 border border-rose-500/40 text-rose-300 text-sm">
+          {socketError}
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 my-3 flex flex-col justify-center max-w-6xl w-full mx-auto">
@@ -254,7 +261,7 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
 
       {/* Bottom Section: Student Grid & Controls */}
       <footer className="w-full max-w-6xl mx-auto pt-2 border-t border-slate-800">
-        <div className="flex justify-between items-center mb-2 text-xs md:text-sm font-semibold">
+        <div className="flex flex-wrap justify-between items-center gap-2 mb-2 text-xs md:text-sm font-semibold">
           <div className="flex items-center gap-2">
             <span className="text-slate-300">
               Đã thu thập bài: <span className="font-bold text-emerald-400 font-mono text-base">{submittedCardIds.length}</span>/{studentCount} học sinh
@@ -272,7 +279,18 @@ export function ProjectorView({ sessionId, sessionTitle, className, questions, s
                 <FiLock className="text-base" />
                 <span>Khóa câu hỏi</span>
               </button>
-            ) : isLastQuestion ? (
+            ) : null}
+            {isLocked && (
+              <button
+                onClick={() => unlockQuestion()}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs md:text-sm font-semibold transition active:scale-95"
+                title="Mở lại câu hỏi để học sinh tiếp tục nộp/đổi đáp án"
+              >
+                <FiUnlock className="text-base" />
+                <span>Mở khóa</span>
+              </button>
+            )}
+            {!isLocked ? null : isLastQuestion ? (
               <button
                 onClick={handleEndAndShowResults}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm md:text-base transition active:scale-95"

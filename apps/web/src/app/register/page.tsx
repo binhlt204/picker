@@ -53,7 +53,7 @@ export default function RegisterPage() {
           <Alert type="success">{pendingMessage}</Alert>
           <Link
             href="/login"
-            className="block w-full text-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-sm py-2.5 transition"
+            className="block w-full text-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold text-sm py-2.5 transition"
           >
             Về trang đăng nhập
           </Link>

@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { ANSWER_KEYS, OPTION_CONFIG } from '@/lib/answerOptions';
 
 interface Question {
@@ -356,28 +357,23 @@ export default function QuizzesPage() {
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-            <FiFileText className="text-amber-500" />
-            <span>Ngân Hàng Đề Thi & Soạn Câu Hỏi</span>
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Không giới hạn số lượng câu hỏi • Tùy chỉnh thời gian trả lời riêng cho từng câu
-          </p>
-        </div>
-
-        <Button size="sm" onClick={() => setIsCreateQuizOpen(true)} className="self-start sm:self-auto">
-          <FiPlus />
-          <span>Tạo Đề Mới</span>
-        </Button>
-      </div>
+      <PageHeader
+        icon={<FiFileText />}
+        title="Ngân hàng đề thi"
+        description="Soạn câu hỏi không giới hạn, tùy chỉnh thời gian trả lời riêng cho từng câu"
+        actions={
+          <Button size="sm" onClick={() => setIsCreateQuizOpen(true)}>
+            <FiPlus />
+            <span>Tạo đề mới</span>
+          </Button>
+        }
+      />
 
       {/* Main 2-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Quizzes List (4 cols) */}
         <div className="lg:col-span-4 space-y-3">
-          <h3 className="text-xs uppercase font-bold text-slate-400 tracking-wider px-1">
+          <h3 className="text-xs uppercase font-semibold text-slate-500 tracking-wide px-1">
             Danh Sách Bộ Đề ({quizzes.length})
           </h3>
 
@@ -398,17 +394,17 @@ export default function QuizzesPage() {
                   <div
                     key={q.id}
                     onClick={() => loadQuizDetails(q.id)}
-                    className={`group p-4 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
+                    className={`group p-3.5 rounded-lg border transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                       isSelected
-                        ? 'bg-blue-600/15 border-blue-500/60'
+                        ? 'bg-blue-600/10 border-blue-500/50'
                         : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
                     }`}
                   >
-                    <div>
-                      <h4 className={`text-base font-bold ${isSelected ? 'text-blue-400' : 'text-slate-200'}`}>
+                    <div className="min-w-0">
+                      <h4 className={`text-sm sm:text-base font-semibold truncate ${isSelected ? 'text-blue-400' : 'text-slate-200'}`}>
                         {q.title}
                       </h4>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-400 mt-0.5 truncate">
                         {q.question_count ?? q.questions?.length ?? 0} câu hỏi • Tạo ngày{' '}
                         {q.created_at ? new Date(q.created_at).toLocaleDateString('vi-VN') : '—'}
                       </p>
@@ -419,7 +415,7 @@ export default function QuizzesPage() {
                         e.stopPropagation();
                         handleDeleteQuiz(q.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
+                      className="shrink-0 lg:opacity-0 lg:group-hover:opacity-100 p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
                       title="Xóa đề"
                     >
                       <FiTrash2 />
@@ -436,9 +432,9 @@ export default function QuizzesPage() {
           {selectedQuiz ? (
             <div>
               {/* Quiz Header Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 mb-5 border-b border-slate-800">
                 <div>
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-semibold text-slate-100 flex flex-wrap items-center gap-2 break-words min-w-0">
                     <span>{selectedQuiz.title}</span>
                     <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-bold">
                       {selectedQuiz.questions?.length || 0} câu hỏi
@@ -449,7 +445,7 @@ export default function QuizzesPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button variant="secondary" size="sm" onClick={() => setIsBulkWordOpen(true)}>
                     <FiFileText />
                     <span>Nhập Đề Từ Word</span>
@@ -480,14 +476,14 @@ export default function QuizzesPage() {
                   {selectedQuiz.questions.map((q) => (
                     <div
                       key={q.id}
-                      className="group p-5 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 border border-slate-700/60 transition space-y-3"
+                      className="group p-3.5 sm:p-5 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 border border-slate-700/60 transition space-y-3 min-w-0"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <span className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-400 font-black text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <span className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-400 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
                             {q.question_order}
                           </span>
-                          <h4 className="text-base font-bold text-slate-100 leading-snug">
+                          <h4 className="text-sm sm:text-base font-semibold text-slate-100 leading-snug break-words min-w-0">
                             {q.content}
                           </h4>
                         </div>
@@ -522,7 +518,7 @@ export default function QuizzesPage() {
                               }`}
                             >
                               <div className="flex items-center gap-2 truncate">
-                                <span className={`font-black ${OPTION_CONFIG[key].textAccent}`}>{key}.</span>
+                                <span className={`font-bold ${OPTION_CONFIG[key].textAccent}`}>{key}.</span>
                                 <span className="truncate">{text}</span>
                               </div>
                               {isCorrect && (
@@ -551,13 +547,13 @@ export default function QuizzesPage() {
       <Modal open={isCreateQuizOpen} onClose={() => setIsCreateQuizOpen(false)} title="Tạo Bộ Đề Mới">
         <form onSubmit={handleCreateQuiz} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tiêu đề đề thi</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">Tiêu đề đề thi</label>
             <input
               type="text"
               placeholder="Ví dụ: Kiểm tra 15 phút Toán học..."
               value={newQuizTitle}
               onChange={(e) => setNewQuizTitle(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
               autoFocus
               required
             />
@@ -577,13 +573,13 @@ export default function QuizzesPage() {
       <Modal open={isAddQuestionOpen} onClose={() => setIsAddQuestionOpen(false)} title="Thêm Câu Hỏi Mới" maxWidth="xl">
         <form onSubmit={handleAddQuestion} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nội dung câu hỏi</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">Nội dung câu hỏi</label>
             <textarea
               rows={3}
               placeholder="Nhập nội dung câu hỏi trắc nghiệm..."
               value={questionContent}
               onChange={(e) => setQuestionContent(e.target.value)}
-              className="w-full p-4 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full p-4 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
               autoFocus
               required
             />
@@ -606,7 +602,7 @@ export default function QuizzesPage() {
                   placeholder={`Nội dung đáp án ${key}...`}
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
@@ -616,7 +612,7 @@ export default function QuizzesPage() {
           {/* Correct Option & Time Limit */}
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Đáp án đúng</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">Đáp án đúng</label>
               <div className="flex gap-2">
                 {ANSWER_KEYS.map((key) => (
                   <button
@@ -636,14 +632,14 @@ export default function QuizzesPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Thời gian (giây)</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">Thời gian (giây)</label>
               <input
                 type="number"
                 min="5"
                 max="180"
                 value={timeLimit}
                 onChange={(e) => setTimeLimit(parseInt(e.target.value, 10))}
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
                 required
               />
             </div>
@@ -694,7 +690,7 @@ export default function QuizzesPage() {
                 placeholder={`Dán toàn bộ nội dung file Word vào đây...\n\nVí dụ:\nCâu 1: Dung dịch là hỗn hợp\nA. của chất rắn trong chất lỏng\nB. của chất khí trong chất lỏng\nC. đồng nhất của chất rắn và dung môi\nD. đồng nhất của dung môi và chất tan\n\nCâu 2: Công thức của nước là gì?\nA. CO2\nB. H2O\nC. O2\nD. NaCl\n\nĐÁP ÁN VÀ LỜI GIẢI\nCâu  1  2\nĐáp án  D  B`}
                 value={bulkWordText}
                 onChange={(e) => setBulkWordText(e.target.value)}
-                className="w-full min-h-[220px] p-4 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-blue-500"
+                className="w-full min-h-[220px] p-4 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-blue-500"
                 required
               />
             </div>
@@ -721,7 +717,7 @@ export default function QuizzesPage() {
             <div className="overflow-y-auto pr-1 space-y-3 max-h-[380px]">
               {parsedQuestions.map((q, idx) => (
                 <div key={idx} className="p-4 rounded-lg bg-slate-800/80 border border-slate-700/80">
-                  <div className="font-bold text-sm text-white mb-2">
+                  <div className="font-bold text-sm text-slate-100 mb-2">
                     <span className="text-blue-400 mr-2">Câu {idx + 1}:</span>
                     {q.content}
                   </div>
@@ -746,7 +742,7 @@ export default function QuizzesPage() {
                         }}
                         className={`w-9 h-8 rounded-lg font-bold text-xs transition flex items-center justify-center ${
                           q.correct_option === opt
-                            ? 'bg-emerald-500 text-slate-950 font-black'
+                            ? 'bg-emerald-500 text-slate-950 font-bold'
                             : 'bg-slate-700/70 text-slate-300 hover:bg-slate-700 hover:text-white'
                         }`}
                       >

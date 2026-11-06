@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const TOKEN_KEY = 'pickball_token';
+const TOKEN_KEY = 'lbhouse_token';
 
 // Các trang không cần đăng nhập
 export const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/reset-password'];

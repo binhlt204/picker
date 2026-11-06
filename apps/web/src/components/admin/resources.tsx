@@ -184,6 +184,9 @@ export const ClassroomList = () => (
   >
     <Datagrid rowClick="edit" bulkActionButtons={<CascadeBulkDelete warning={CLASS_WARNING} />}>
       <TextField source="name" label="Tên lớp" />
+      <ReferenceField source="owner_id" reference="users" label="Giáo viên" link={false} emptyText="—">
+        <TextField source="full_name" />
+      </ReferenceField>
       <DateField source="created_at" label="Ngày tạo" showTime />
       <EditButton label="Sửa" />
     </Datagrid>
@@ -269,6 +272,9 @@ export const QuizList = () => (
   >
     <Datagrid rowClick="edit" bulkActionButtons={<CascadeBulkDelete warning={QUIZ_WARNING} />}>
       <TextField source="title" label="Tên bộ đề" />
+      <ReferenceField source="owner_id" reference="users" label="Giáo viên" link={false} emptyText="—">
+        <TextField source="full_name" />
+      </ReferenceField>
       <DateField source="created_at" label="Ngày tạo" showTime />
       <EditButton label="Sửa" />
     </Datagrid>
@@ -369,6 +375,9 @@ export const SessionList = () => (
       </ReferenceField>
       <ReferenceField source="quiz_id" reference="quizzes" label="Bộ đề" link={false}>
         <TextField source="title" />
+      </ReferenceField>
+      <ReferenceField source="owner_id" reference="users" label="Giáo viên" link={false} emptyText="—">
+        <TextField source="full_name" />
       </ReferenceField>
       <SelectField source="status" label="Trạng thái" choices={sessionStatusChoices} />
       <NumberField source="current_question_order" label="Câu hiện tại" />

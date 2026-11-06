@@ -9,7 +9,7 @@ import { AuthGate, AuthProvider } from '@/components/auth/AuthProvider';
 const inter = Inter({ subsets: ['latin', 'vietnamese'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'Pickball - Hệ Thống Trắc Nghiệm Thẻ Giấy Thời Gian Thực',
+  title: 'LB HOUSE - Hệ Thống Trắc Nghiệm Thẻ Giấy Thời Gian Thực',
   description: 'Nền tảng kiểm tra trắc nghiệm bằng thẻ giấy thông minh ArUco dành cho giáo viên và học sinh.',
 };
 

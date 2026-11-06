@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 interface ExamSession {
   id: string;
@@ -88,22 +89,17 @@ export default function SessionsPage() {
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-            <FiPlayCircle className="text-blue-500" />
-            <span>Các Phiên Kiểm Tra Trực Tiếp</span>
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Kết nối máy chiếu phòng học và đồng bộ quét camera từ ứng dụng điện thoại
-          </p>
-        </div>
-
-        <Button size="sm" onClick={() => setIsCreateOpen(true)} className="self-start sm:self-auto">
-          <FiPlus />
-          <span>Tạo Phiên Mới</span>
-        </Button>
-      </div>
+      <PageHeader
+        icon={<FiPlayCircle />}
+        title="Phiên kiểm tra"
+        description="Kết nối máy chiếu phòng học và đồng bộ quét camera từ ứng dụng điện thoại"
+        actions={
+          <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+            <FiPlus />
+            <span>Tạo phiên mới</span>
+          </Button>
+        }
+      />
 
       {/* Sessions Grid */}
       {loading ? (
@@ -113,7 +109,7 @@ export default function SessionsPage() {
           <div className="w-16 h-16 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center text-3xl mx-auto mb-4">
             <FiPlayCircle />
           </div>
-          <h3 className="text-lg font-bold text-white mb-1">Chưa có phiên kiểm tra nào</h3>
+          <h3 className="text-lg font-bold text-slate-100 mb-1">Chưa có phiên kiểm tra nào</h3>
           <p className="text-xs text-slate-400 mb-6">
             Chọn lớp học và bộ đề thi tương ứng để bắt đầu phiên làm bài trên máy chiếu.
           </p>
@@ -139,25 +135,25 @@ export default function SessionsPage() {
                   </div>
 
                   {/* Quiz title */}
-                  <h3 className="text-lg font-bold text-white mb-2 leading-snug">
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-100 mb-2 leading-snug break-words">
                     {session.quiz_title}
                   </h3>
 
                   {/* Classroom name */}
                   <div className="flex items-center gap-2 text-xs text-slate-300 mb-4">
-                    <FiUsers className="text-blue-400" />
-                    <span>Lớp: <strong className="text-white">{session.classroom_name}</strong></span>
+                    <FiUsers className="text-slate-500 shrink-0" />
+                    <span className="min-w-0 truncate">Lớp: <strong className="text-slate-100 font-semibold">{session.classroom_name}</strong></span>
                   </div>
 
                   {/* Meta stats */}
                   <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-slate-800/40 border border-slate-800 text-xs">
                     <div>
                       <span className="text-slate-400 block text-[10px] uppercase font-bold">Học sinh</span>
-                      <span className="text-sm font-black text-white font-mono">{session.total_students || 0} HS</span>
+                      <span className="text-sm font-bold text-slate-100 font-mono">{session.total_students || 0} HS</span>
                     </div>
                     <div>
                       <span className="text-slate-400 block text-[10px] uppercase font-bold">Câu hỏi</span>
-                      <span className="text-sm font-black text-white font-mono">{session.total_questions || 0} câu</span>
+                      <span className="text-sm font-bold text-slate-100 font-mono">{session.total_questions || 0} câu</span>
                     </div>
                   </div>
                 </div>
@@ -189,11 +185,11 @@ export default function SessionsPage() {
         <form onSubmit={handleCreateSession} className="space-y-4">
           {/* Select Classroom */}
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">1. Chọn Lớp Học</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">1. Chọn Lớp Học</label>
             <select
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
               required
             >
               {classrooms.map((c) => (
@@ -206,11 +202,11 @@ export default function SessionsPage() {
 
           {/* Select Quiz */}
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. Chọn Bộ Đề Thi</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">2. Chọn Bộ Đề Thi</label>
             <select
               value={selectedQuizId}
               onChange={(e) => setSelectedQuizId(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
               required
             >
               {quizzes.map((q) => (

@@ -13,7 +13,7 @@ import FactCheckIcon from '@mui/icons-material/FactCheck';
 import { authProvider } from './authProvider';
 import { dataProvider } from './dataProvider';
 import { i18nProvider } from './i18n';
-import { pickballAdminTheme } from './theme';
+import { lbHouseAdminTheme } from './theme';
 import { Dashboard } from './Dashboard';
 import {
   AnswerList,
@@ -50,13 +50,13 @@ export default function AdminApp() {
           element={
           <Admin
             basename="/admin"
-            title="Pickball - Quản trị"
+            title="LB HOUSE - Quản trị"
             dataProvider={dataProvider}
             authProvider={authProvider}
             i18nProvider={i18nProvider}
             dashboard={Dashboard}
-            theme={pickballAdminTheme}
-            darkTheme={pickballAdminTheme}
+            theme={lbHouseAdminTheme}
+            darkTheme={lbHouseAdminTheme}
             defaultTheme="dark"
             requireAuth
           >

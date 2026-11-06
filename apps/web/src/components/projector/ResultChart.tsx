@@ -24,12 +24,12 @@ export function ResultChart({ distribution, correctOption, totalSubmitted }: Res
         {/* Left: Overall Accuracy */}
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-            <span className="text-2xl font-black text-emerald-400 font-mono">
+            <span className="text-2xl font-bold text-emerald-400 font-mono">
               {accuracyPct}%
             </span>
           </div>
           <div>
-            <h4 className="text-base font-bold text-white">Tỷ lệ trả lời đúng</h4>
+            <h4 className="text-base font-bold text-slate-100">Tỷ lệ trả lời đúng</h4>
             <p className="text-xs text-slate-400">Đáp án chuẩn: <span className="font-bold text-emerald-400 text-sm">Câu {correctOption}</span></p>
           </div>
         </div>
@@ -38,15 +38,15 @@ export function ResultChart({ distribution, correctOption, totalSubmitted }: Res
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700/60 text-center">
             <div className="text-xs text-slate-400 font-medium">Đã nộp</div>
-            <div className="text-lg font-black text-white font-mono">{totalSubmitted}</div>
+            <div className="text-lg font-bold text-slate-100 font-mono">{totalSubmitted}</div>
           </div>
           <div className="px-4 py-2 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-center">
             <div className="text-xs text-emerald-400 font-medium">Lựa chọn đúng</div>
-            <div className="text-lg font-black text-emerald-400 font-mono">{correctCount}</div>
+            <div className="text-lg font-bold text-emerald-400 font-mono">{correctCount}</div>
           </div>
           <div className="px-4 py-2 rounded-lg bg-rose-950/40 border border-rose-500/40 text-center">
             <div className="text-xs text-rose-400 font-medium">Lựa chọn sai</div>
-            <div className="text-lg font-black text-rose-400 font-mono">{incorrectCount}</div>
+            <div className="text-lg font-bold text-rose-400 font-mono">{incorrectCount}</div>
           </div>
         </div>
       </div>
